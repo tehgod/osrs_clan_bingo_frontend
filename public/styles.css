@@ -1,0 +1,45 @@
+/* styles.css */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 20px;
+}
+td, th {
+    border: 1px solid #000;
+    padding: 8px;
+    text-align: center;
+}
+
+/* Difficulty color styles */
+
+td[difficulty="0"] {
+    background-color: #0de63f; /* Neon Green */
+}
+
+td[difficulty="1"] {
+    background-color: #d4edda; /* Light green */
+}
+
+td[difficulty="2"] {
+    background-color: #cce5ff; /* Light blue */
+}
+
+td[difficulty="3"] {
+    background-color: #ffeeba; /* Light yellow */
+}
+
+td[difficulty="4"] {
+    background-color: #f8d7da; /* Light red */
+}
+
+td[difficulty="5"] {
+    background-color: #f78691; /* Pink */
+}
+
+td[difficulty="6"] {
+    background-color: #fe2b2b; /* Light gray */
+}
+
+td[completed="true"] {
+    background-color: #0de63f; /* Neon Green */
+}
