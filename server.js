@@ -8,8 +8,31 @@ const app = express();
 const port = 3000;
 
 app.use(cors());
+app.use(bodyParser.urlencoded({ extended: true })); // for URL-encoded data
 app.use(bodyParser.json());
 app.use(express.static('public')); // Serve static files from 'public' directory
+
+function getAdjacentCells(cell) {
+    var regex = /^([a-zA-Z]+)(\d+)$/;
+    var match = cell.match(regex);
+
+    if (!match) {
+        throw new Error('Invalid cell format');
+    }
+
+    const column = match[1].toUpperCase(); // Convert to uppercase for calculations
+    const row = parseInt(match[2], 10); // Row number
+
+    // Create an array of adjacent cells in lowercase
+    const adjacentCells = [
+        `${column}${row - 1}`.toLowerCase(), // Cell above
+        `${column}${row + 1}`.toLowerCase(), // Cell below
+        `${String.fromCharCode(column.charCodeAt(0) - 1)}${row}`.toLowerCase(), // Cell to the left
+        `${String.fromCharCode(column.charCodeAt(0) + 1)}${row}`.toLowerCase()  // Cell to the right
+    ];
+
+    return adjacentCells;
+}
 
 const db = mysql.createConnection({
     host: process.env.MYSQL_HOST,
@@ -26,17 +49,30 @@ db.connect((err) => {
 
 // API endpoint to fetch data
 app.post('/api/complete-tile', (req, res) => {
-    const sql = 'SELECT * FROM Users';
-    db.query(sql, (err, results) => {
+    var completedTile = req.body.tile;
+    var teamId = req.body.teamId;
+    console.log(req.body.img)
+    var inProgressTiles = getAdjacentCells(completedTile)
+    const sql = `UPDATE CurrentLayouts SET Status = 1 WHERE Cell = ? and Team =?`;
+    const values = [completedTile, teamId];
+    db.query(sql, values, (err, results) => {
         if (err) throw err;
-        res.json(results);
     });
+    inProgressTiles.forEach((inProgressTile) => {
+        var sql = `UPDATE CurrentLayouts SET Status = 2 WHERE Cell = ? and Team = ?`;
+        var values = [inProgressTile, teamId];
+        db.query(sql, values, (err, results) => {
+            if (err) throw err;
+        });
+    });
+    res.redirect('/');
 });
 
 app.get('/api/getTemplateNumber', (req, res) => {
     var teamId = req.query.teamId;
-    const sql = 'SELECT DISTINCT Template from CurrentLayouts cl where Team ='+teamId;
-    db.query(sql, (err, results) => {
+    const sql = 'SELECT DISTINCT Template from CurrentLayouts cl where Team = ?';
+    const values = [teamId]
+    db.query(sql, values, (err, results) => {
         if (err) throw err;
         res.json(results);
     });
@@ -44,17 +80,9 @@ app.get('/api/getTemplateNumber', (req, res) => {
 
 app.get('/api/getTemplate', (req, res) => {
     var templateId = req.query.templateId;
-    const sql = 'SELECT Cell, Difficulty from BoardTemplate bt where Template='+templateId;
-    db.query(sql, (err, results) => {
-        if (err) throw err;
-        res.json(results);
-    });
-});
-
-app.get('/api/getTemplate', (req, res) => {
-    var templateId = req.query.templateId;
-    const sql = 'SELECT Cell, Difficulty from BoardTemplate bt where Template='+templateId;
-    db.query(sql, (err, results) => {
+    const sql = 'SELECT Cell, Difficulty from BoardTemplate bt where Template=?';
+    const values = [templateId]
+    db.query(sql, values, (err, results) => {
         if (err) throw err;
         res.json(results);
     });
@@ -62,12 +90,24 @@ app.get('/api/getTemplate', (req, res) => {
 
 app.get('/api/getCompleted', (req, res) => {
     var teamId = req.query.teamId;
-    const sql = 'SELECT cl.Cell , t.Task  from CurrentLayouts cl inner join Tasks t on cl.TaskId =t.Id where (Status =1 or t.Difficulty =0) and Team = '+teamId;
-    db.query(sql, (err, results) => {
+    const sql = 'SELECT cl.Cell, cl.Status, t.Task  from CurrentLayouts cl inner join Tasks t on cl.TaskId =t.Id where (Status >0 or t.Difficulty =0) and Team = ?';
+    const values = [teamId]
+    db.query(sql, values, (err, results) => {
         if (err) throw err;
         res.json(results);
     });
 });
+
+app.get('/api/getTeamMembers', (req, res) => {
+    var teamId = req.query.teamId;
+    const sql = 'SELECT Username  FROM TeamMembers tm WHERE Team = ?';
+    const values = [teamId]
+    db.query(sql, values, (err, results) => {
+        if (err) throw err;
+        res.json(results);
+    });
+})
+
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });
