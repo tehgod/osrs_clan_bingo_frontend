@@ -103,15 +103,15 @@ app.get('/api/getCompleted', (req, res) => {
     });
 });
 
-app.get('/api/getTeamMembers', (req, res) => {
+app.get('/api/getUrls', (req, res) => {
     var teamId = req.query.teamId;
-    const sql = 'SELECT Username  FROM TeamMembers tm WHERE Team = ?';
+    const sql = 'SELECT clu.Cell, clu.Url from CurrentLayoutUrls clu WHERE Team = ?';
     const values = [teamId]
     db.query(sql, values, (err, results) => {
         if (err) throw err;
         res.json(results);
     });
-})
+});
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);

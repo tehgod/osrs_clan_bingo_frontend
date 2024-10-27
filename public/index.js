@@ -1,14 +1,4 @@
 
-// JavaScript function to add a new URL input field
-document.getElementById('add-url').addEventListener('click', function() {
-    const urlInputsContainer = document.getElementById('url-inputs');
-    const newInput = document.createElement('input');
-    newInput.type = 'text';
-    newInput.name = 'imageUrl'; // Keep the same name to treat as an array in req.body
-    newInput.placeholder = 'Enter image URL';
-    urlInputsContainer.appendChild(newInput);
-    urlInputsContainer.appendChild(document.createElement('br')); // Add line break
-});
 
 function a1ToNumber(a1) {
     // Extract column letters and row number
@@ -119,8 +109,6 @@ function loadScoreboard() {
 async function loadBingoBoard() {
     const teamId = 1;
 
-    document.getElementById("formTeamId").value = teamId;
-
     document.title=`Team ${teamId}`;
 
     document.getElementById("teamHeader").textContent=`Team ${teamId}`;
@@ -162,6 +150,27 @@ async function loadBingoBoard() {
         document.getElementById(tile.Cell).classList.add(tile.Difficulty)
     });
 
+    const tileUrls = await fetch(`/api/getUrls?teamId=${teamId}`)
+        .then(response => response.json())
+    
+    console.log(tileUrls)
+    
+    const urlsMap = {};
+
+    tileUrls.forEach(item => {
+        if (!urlsMap[item.Cell]) {
+            urlsMap[item.Cell] = [];
+        }
+        urlsMap[item.Cell].push(item.Url);
+    });
+
+    for (const cell in urlsMap) {
+        const cellElement = document.getElementById(cell);
+        if (cellElement) {
+            cellElement.setAttribute('data-urls', JSON.stringify(urlsMap[cell]));
+        }
+    }
+
     const completedTiles = await fetch(`/api/getCompleted?teamId=${teamId}`)
         .then(response => response.json())
 
@@ -179,9 +188,70 @@ function calculateScore() {
     console.log(completedElements)
 }
 
+function addLink() {
+    if (linkURL) {
+        // Create a new list item
+        const listItem = document.createElement('li');
+
+        // Create the hyperlink
+        const link = document.createElement('a');
+        link.href = linkURL;
+        link.textContent = `Link ${linkCount++}`;
+        link.target = "_blank"; // Opens link in a new tab
+
+        // Create and add remove button
+        const removeButton = document.createElement('button');
+        removeButton.textContent = 'Remove';
+        removeButton.classList.add('remove-btn');
+        removeButton.onclick = () => listItem.remove();
+
+        // Append link and button to list item, and list item to list
+        listItem.appendChild(link);
+        listItem.appendChild(removeButton);
+        document.getElementById('itemList').appendChild(listItem);
+
+        // Clear input field
+        linkInput.value = '';
+    } else {
+        alert("Please enter a valid URL.");
+    }
+}
+
+function bindOnClicks() {
+    // Select all <td> elements with the class "clickable"
+    const bingoBoardTiles = document.querySelectorAll("#bingo-board td");
+
+    // Loop through each <td> and add an onclick event listener
+    bingoBoardTiles.forEach(tile => {
+        tile.addEventListener("click", function() {
+            document.getElementById("selectedTileUrlsList").innerHTML=""
+            document.getElementById('selectedTile').value = tile.id;
+            document.getElementById('selectedTileTask').textContent =`Task: ${tile.textContent}`;
+            if (tile.classList.contains("completed")){
+                document.getElementById('selectedTileCompleted').checked=true
+            } else {
+                document.getElementById('selectedTileCompleted').checked=false
+            }
+            const urls = JSON.parse(tile.getAttribute('data-urls') || '[]');
+            var i = 1
+            urls.forEach((url) => {
+                listItem = document.createElement("li")
+                link = document.createElement("a")
+                link.textContent = `Picture ${i}`;
+                link.href = url;
+                listItem.appendChild(link)
+                document.getElementById("selectedTileUrlsList").appendChild(listItem)
+                i++;
+            });
+            
+        });
+    });
+}
+
 (async () => {
     // Create Grid
     loadScoreboard();
     await loadBingoBoard();
     calculateScore();
+    bindOnClicks();
 })(); // Immediately invoke the async function
