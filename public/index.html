@@ -11,14 +11,31 @@
 </head>
 <body>
 <h1 id="teamHeader"></h1>
-<form action="/api/complete-tile" id="complete-tile" method="post">
+<!-- <form action="/api/complete-tile" id="complete-tile" method="post" enctype="multipart/form-data">
     <label for="tile">Complete Tile:</label>
+    <input type="hidden" id="formTeamId" value="" name="teamId" />
     <input type="text" id="tile" name="tile"><br><br>
     <label for="img">Select image:</label>
     <input type="file" id="img" name="img" accept="image/*" multiple>
+    <input type="submit" value="Submit">
+</form> -->
+<form action="/api/complete-tile" id="complete-tile" method="post">
+    <label for="tile">Complete Tile:</label>
+    <input type="text" id="tile" name="tile"><br><br>
+    
+    <label for="img">Select image:</label>
+    <input type="file" id="img" name="img" accept="image/*" multiple><br><br>
+
+    <div id="url-inputs">
+        <label for="imageUrl">Image URL:</label>
+        <input type="text" id="imageUrl" name="imageUrl" placeholder="Enter image URL"><br><br>
+    </div>
+    
+    <button type="button" id="add-url">Add Another URL</button><br><br>
+
     <input type="hidden" id="formTeamId" value="" name="teamId" />
     <input type="submit" value="Submit">
-  </form> 
+</form>
 <table>
     <thead>
         <tr>
@@ -37,8 +54,23 @@
         <!-- JavaScript will generate the grid here -->
     </tbody>
 </table>
-    
+   
+
 <script>
+    // JavaScript function to add a new URL input field
+    document.getElementById('add-url').addEventListener('click', function() {
+        const urlInputsContainer = document.getElementById('url-inputs');
+        const newInput = document.createElement('input');
+        newInput.type = 'text';
+        newInput.name = 'imageUrl'; // Keep the same name to treat as an array in req.body
+        newInput.placeholder = 'Enter image URL';
+        urlInputsContainer.appendChild(newInput);
+        urlInputsContainer.appendChild(document.createElement('br')); // Add line break
+    });
+</script>
+
+<script>
+    
     function a1ToNumber(a1) {
         // Extract column letters and row number
         const match = a1.match(/([a-zA-Z]+)(\d+)/); // Allow both lowercase and uppercase
