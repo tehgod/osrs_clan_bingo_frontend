@@ -5,28 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title></title>
     <link rel="stylesheet" href="styles.css">
-    <style>
-        
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
 </head>
 <body>
 <h1 id="teamHeader"></h1>
-<!-- <form action="/api/complete-tile" id="complete-tile" method="post" enctype="multipart/form-data">
-    <label for="tile">Complete Tile:</label>
-    <input type="hidden" id="formTeamId" value="" name="teamId" />
-    <input type="text" id="tile" name="tile"><br><br>
-    <label for="img">Select image:</label>
-    <input type="file" id="img" name="img" accept="image/*" multiple>
-    <input type="submit" value="Submit">
-</form> -->
-<form action="/api/complete-tile" id="complete-tile" method="post">
-    <label for="tile">Complete Tile:</label>
-    <input type="text" id="tile" name="tile"><br><br>
-    
-    <label for="img">Select image:</label>
-    <input type="file" id="img" name="img" accept="image/*" multiple><br><br>
 
-    <div id="url-inputs">
+<form action="/api/complete-tile" id="complete-tile" method="post" enctype="multipart/form-data">
+    <div class="mb-3 row">
+        <label for="tile" class="col-sm-2 col-form-label">Complete Tile:</label>
+        <div class="col-sm-10">
+            <input type="text" id="tile" name="tile" class="form-control"><br><br>
+        </div>
+    </div>
+    <div id="url-inputs" class="mb-3 row">
         <label for="imageUrl">Image URL:</label>
         <input type="text" id="imageUrl" name="imageUrl" placeholder="Enter image URL"><br><br>
     </div>
@@ -36,137 +29,19 @@
     <input type="hidden" id="formTeamId" value="" name="teamId" />
     <input type="submit" value="Submit">
 </form>
-<table>
-    <thead>
-        <tr>
-            <th>Id</th>
-            <th>Nickname</th>
-            <th>DiscordUserId</th>
-        </tr>
-    </thead>
-    <tbody id="user-table-body">
-        <!-- User data will be populated here -->
-    </tbody>
-</table>
 
-<table id="grid-table">
+<table id="scoreboard">
     <tbody>
-        <!-- JavaScript will generate the grid here -->
     </tbody>
 </table>
-   
 
-<script>
-    // JavaScript function to add a new URL input field
-    document.getElementById('add-url').addEventListener('click', function() {
-        const urlInputsContainer = document.getElementById('url-inputs');
-        const newInput = document.createElement('input');
-        newInput.type = 'text';
-        newInput.name = 'imageUrl'; // Keep the same name to treat as an array in req.body
-        newInput.placeholder = 'Enter image URL';
-        urlInputsContainer.appendChild(newInput);
-        urlInputsContainer.appendChild(document.createElement('br')); // Add line break
-    });
-</script>
-
-<script>
-    
-    function a1ToNumber(a1) {
-        // Extract column letters and row number
-        const match = a1.match(/([a-zA-Z]+)(\d+)/); // Allow both lowercase and uppercase
-        if (!match) {
-            throw new Error('Invalid A1 format');
-        }
-
-        const columnLetters = match[1].toUpperCase(); // Convert to uppercase
-        const rowNumber = parseInt(match[2], 10); // Extract the row number
-
-        // Convert column letters to a number
-        let columnNumber = 0;
-        for (let i = 0; i < columnLetters.length; i++) {
-            columnNumber = columnNumber * 26 + (columnLetters.charCodeAt(i) - 'A'.charCodeAt(0) + 1);
-        }
-
-        return {
-            column: columnNumber,
-            row: rowNumber,
-            index: (columnNumber - 1) + (rowNumber - 1) * 26 // Optional: single index representation
-        };
-    }
-
-    function numberToA1(column, row, toUpperCase = true) {
-        let columnLetters = '';
-
-        // Convert column number to letters
-        while (column > 0) {
-            const remainder = (column - 1) % 26;
-            columnLetters = String.fromCharCode(remainder + 'A'.charCodeAt(0)) + columnLetters;
-            column = Math.floor((column - 1) / 26);
-        }
-
-        // Convert to lowercase if specified
-        if (!toUpperCase) {
-            columnLetters = columnLetters.toLowerCase();
-        }
-
-        // Combine letters and row number
-        return columnLetters + row;
-    }
-
-    (async () => {
-        // Create Grid
-        const teamId = 1;
-
-        document.getElementById("formTeamId").value = teamId
-        document.title=`Team ${teamId}`;
-        document.getElementById("teamHeader").textContent=`Team ${teamId}`;
-        const templateNumber = await fetch(`/api/getTemplateNumber?teamId=${teamId}`)
-            .then(response => response.json())
-            .then(data => data[0].Template);
-        const templateData = await fetch(`/api/getTemplate?templateId=${templateNumber}`)
-            .then(response => response.json());
-        
-        first_tile = a1ToNumber(templateData[0].Cell)
-        var firstColumn = first_tile.column;
-        var lastColumn = first_tile.column;
-        var firstRow = first_tile.row;
-        var lastRow = first_tile.row;
-
-        templateData.forEach((tile) => {
-            current_tile = a1ToNumber(tile.Cell)
-            if (current_tile.column<firstColumn) firstColumn = current_tile.column
-            if (current_tile.column>lastColumn) lastColumn = current_tile.column
-            if (current_tile.row<firstRow) firstRow = current_tile.row
-            if (current_tile.row>lastRow) lastRow = current_tile.row
-        });
-
-        const gridTableBody = document.getElementById('grid-table').querySelector('tbody');
-        for (let i = firstRow; i <= lastRow; i++) {
-            const row = document.createElement('tr');
-            for (let j = firstColumn; j <= lastColumn; j++) {
-                const cell = document.createElement('td');
-                cell.id = numberToA1(j, i, false); // Display row and column numbers
-                row.appendChild(cell);
-            }
-            gridTableBody.appendChild(row);
-        }
-        templateData.forEach((tile) => {
-            document.getElementById(tile.Cell).setAttribute("difficulty", tile.Difficulty)
-        });
-
-        const completedTiles = await fetch(`/api/getCompleted?teamId=${teamId}`)
-            .then(response => response.json())
-
-        completedTiles.forEach((tile) => {
-            document.getElementById(tile.Cell).innerText=tile.Task
-            if (tile.Status == 1) {
-                document.getElementById(tile.Cell).setAttribute("completed", "true")
-            }
-            
-        })
-
-    })(); // Immediately invoke the async function
-</script>
+<table id="bingo-board">
+    <tbody>
+    </tbody>
+</table>
 
 </body>
+
+<script src="index.js"></script>
+
 </html>

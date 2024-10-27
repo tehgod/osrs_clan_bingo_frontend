@@ -2,33 +2,8 @@ const express = require('express');
 const mysql = require('mysql2');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const multer = require('multer')
-const path = require('path')
-const axios = require('axios')
-const fs = require('fs'); // Import the fs module
 
 require('dotenv').config();
-
-const storage = multer.diskStorage({
-    destination: function(req, file, callback) {
-        callback(null, __dirname + "/uploads");
-    },
-    filename: function (req, file, callback) {
-        const completedTile = req.body.tile;
-        const teamId = req.body.teamId;
-        if (!req.fileCounter) req.fileCounter = 1; 
-        const extension = path.extname(file.originalname)
-        const newFileName = `Team${teamId}_${completedTile}_${req.fileCounter}${extension}`;
-        req.fileCounter++; 
-        callback(null, newFileName);
-    }
-})
-
-const upload = multer({ 
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 } // 5 MB limit as an example
-});
-
 
 const app = express();
 const port = 3000;
@@ -74,32 +49,12 @@ db.connect((err) => {
 });
 
 // API endpoint to fetch data
-app.post('/api/complete-tile', upload.array('img'), async (req, res) => {
+app.post('/api/complete-tile', async (req, res) => {
     var completedTile = req.body.tile;
     var teamId = req.body.teamId;
     const imageUrls = Array.isArray(req.body.imageUrl) ? req.body.imageUrl : [req.body.imageUrl];
-    var img_num =1
     for (const imageUrl of imageUrls) {
-        var img_num
-        if (imageUrl) {
-            try {
-                console.log('Downloading Image URL:', imageUrl); // Log each image URL
-
-                // Download the image and save it
-                const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-
-                // Create a unique filename for the downloaded image
-                const imageFileName = `Team${teamId}_${completedTile}_${img_num}.png`;
-                const imagePath = path.join(__dirname, 'uploads', imageFileName);
-
-                // Write the image to the filesystem
-                fs.writeFileSync(imagePath, response.data);
-                img_num++;
-            }
-            catch (error) {
-                console.error('Error downloading image:', error.message);
-            }
-        }
+        console.log(imageUrl)
     }
     var inProgressTiles = getAdjacentCells(completedTile)
     const sql = `UPDATE CurrentLayouts SET Status = 1 WHERE Cell = ? and Team =?`;
@@ -107,6 +62,7 @@ app.post('/api/complete-tile', upload.array('img'), async (req, res) => {
     db.query(sql, values, (err, results) => {
         if (err) throw err;
     });
+
     inProgressTiles.forEach((inProgressTile) => {
         var sql = `UPDATE CurrentLayouts SET Status = 2 WHERE Cell = ? and Team = ?`;
         var values = [inProgressTile, teamId];
@@ -129,7 +85,7 @@ app.get('/api/getTemplateNumber', (req, res) => {
 
 app.get('/api/getTemplate', (req, res) => {
     var templateId = req.query.templateId;
-    const sql = 'SELECT Cell, Difficulty from BoardTemplate bt where Template=?';
+    const sql = 'SELECT bt.Cell, LOWER(ld.Name) AS Difficulty from BoardTemplate bt INNER JOIN LookupDifficulty ld on bt.Difficulty = ld.Id WHERE Template=?';
     const values = [templateId]
     db.query(sql, values, (err, results) => {
         if (err) throw err;
