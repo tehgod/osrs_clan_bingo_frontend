@@ -13,59 +13,69 @@
 <body class="container-fluid">
     <h1 id="teamHeader"></h1>
 
-    <form action="/api/update-tile" method="post">
-        <div class="mb-3 row"> <!--Task text-->
-            <div class="col-2">
-                Task:
-            </div>
-            <div class="col" id="selectedTileTask" style="min-height: 60px;">
+    <div class="row">
+        <div class="col-4">
+        <form action="/api/update-tile" method="post">
+            <div class="mb-3 row"> <!--Task text-->
+                <div class="col-2">
+                    Task:
+                </div>
+                <div class="col" id="selectedTileTask" style="min-height: 60px;">
 
+                </div>
             </div>
-        </div>
-        <div class="mb-3 row"> <!--Tile Selected-->
-            <div class="col">
-                <label for="selectedTile" class="form-label col">Tile:</label>
+            <div class="mb-3 row"> <!--Tile Selected-->
+                <div class="col">
+                    <label for="selectedTile" class="form-label col">Tile:</label>
+                </div>
+                <div class="col">
+                    <input class="form-control" type="text" id="selectedTile" name="selectedTile" autocomplete="off" readonly>
+                </div>
             </div>
-            <div class="col">
-                <input class="form-control" type="text" id="selectedTile" name="selectedTile" autocomplete="off" readonly>
+            <div class="mb-3 row"> <!--Completed-->
+                <div class="col">
+                    <label for="selectedTileCompleted">Completed</label>
+                </div>
+                <div class="col">
+                    <input type="checkbox" id="selectedTileCompleted" name="selectedTileCompleted">
+                </div>
             </div>
-        </div>
-        <div class="mb-3 row"> <!--Completed-->
-            <div class="col">
-                <label for="selectedTileCompleted">Completed</label>
+            <div class="mb-3 row"> <!--URL Entry-->
+                <div class="col">
+                    <input class="form-control" type="url" id="linkInput" placeholder="Enter URL">
+                </div>
+                <div class="col">
+                    <button type="button" class="btn btn-success" onclick="addLink()">Add URL</button><br>
+                </div>
             </div>
-            <div class="col">
-                <input type="checkbox" id="selectedTileCompleted" name="selectedTileCompleted">
+            <div id="selectedTileUrlsList"></div>
+            <div id="imageRowTemplate">
+                <div class="row mb-3">
+                    <a class="col"></a>
+                    <i class="bi bi-dash-circle col"></i>
+                </div>
             </div>
-        </div>
-        <div class="mb-3 row"> <!--URL Entry-->
-            <div class="col">
-                <input class="form-control" type="url" id="linkInput" placeholder="Enter URL">
-            </div>
-            <div class="col">
-                <button type="button" class="btn btn-success" onclick="addLink()">Add URL</button><br>
-            </div>
-        </div>
-        <div id="selectedTileUrlsList"></div>
-        <div id="imageRowTemplate">
-            <div class="row mb-3">
-                <a class="col"></a>
-                <i class="bi bi-dash-circle col"></i>
-            </div>
-        </div>
 
-        <div class="mb-3 row">
-            <div class="col">
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Submit</button>
+            <div class="mb-3 row">
+                <div class="col">
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Submit</button>
+                </div>
+            </div>
+            
+            <input type="hidden" id="selectedTileUrlsValues" autocomplete="off" name="selectedTileUrlsValues" value='[]'>
+            <input type="hidden" id="teamId" name="teamId" value=''>
+            
+        </form>
+        </div>
+        <div class="col-5">
+            <div>   
+                <h2>Task Rules:</h2>
+                <ul id="rulesList" class="list">
+
+                </ul>
             </div>
         </div>
-        
-        <input type="hidden" id="selectedTileUrlsValues" autocomplete="off" name="selectedTileUrlsValues" value='[]'>
-        <input type="hidden" id="teamId" name="teamId" value=''>
-        
-    </form>
-
-    
+    </div>
 
     <table id="scoreboard">
         <tbody>

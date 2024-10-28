@@ -233,10 +233,13 @@ function bindOnClicks() {
     // Loop through each <td> and add an onclick event listener
     bingoBoardTiles.forEach(tile => {
         tile.addEventListener("click", function() {
+            document.getElementById('selectedTileUrlsValues').value = "[]"
+            document.getElementById('rulesList').innerHTML = ""
+
             document.getElementById("selectedTileUrlsList").innerHTML=""
             document.getElementById('selectedTile').value = tile.id;
             document.getElementById('selectedTileTask').textContent =`${tile.textContent}`;
-            document.getElementById('selectedTileUrlsValues').value = "[]"
+            
             if (tile.classList.contains("completed")){
                 document.getElementById('selectedTileCompleted').checked=true
             } else {
@@ -244,10 +247,14 @@ function bindOnClicks() {
             }
             const urls = JSON.parse(tile.getAttribute('data-urls') || '[]');
             urls.forEach((url) => {
-                console.log(url)
                 buildLink(url)
             });
-            
+            const rules = JSON.parse(tile.getAttribute('data-rules') || '[]');
+            rules.forEach((rule) => {
+                var listItem = document.createElement("li");
+                listItem.textContent = rule;
+                document.getElementById('rulesList').appendChild(listItem);
+            })
         });
     });
 }
