@@ -141,6 +141,7 @@ async function loadBingoBoard() {
         for (let j = firstColumn; j <= lastColumn; j++) {
             const cell = document.createElement('td');
             cell.id = numberToA1(j, i, false); // Display row and column numbers
+            cell.setAttribute("data-rules", "[]")
             row.appendChild(cell);
         }
         gridTableBody.appendChild(row);
@@ -161,6 +162,18 @@ async function loadBingoBoard() {
         }
         urlsMap[item.Cell].push(item.Url);
     });
+
+    const ruleData = await fetch(`/api/getRules?teamId=${teamId}`)
+        .then(response => response.json())
+    
+    console.log(ruleData)
+    ruleData.forEach((rule) => {
+        console.log(rule)
+        tableCell = document.getElementById(rule.Cell)
+        currentRules = JSON.parse(tableCell.getAttribute("data-rules") || '[]')
+        currentRules.push(rule.Rule)
+        tableCell.setAttribute('data-rules', JSON.stringify(currentRules));
+    })
 
     for (const cell in urlsMap) {
         const cellElement = document.getElementById(cell);

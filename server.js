@@ -110,6 +110,16 @@ app.get('/api/getTemplate', (req, res) => {
     });
 });
 
+app.get('/api/getRules', (req, res) =>{
+    var teamId = req.query.teamId;
+    const sql = 'SELECT cl.Cell, tr.Rule FROM CurrentLayouts cl INNER JOIN TasksRules tr ON cl.TaskId = tr.TasksId WHERE Team = ? AND Status!=0';
+    const values = [teamId]
+    db.query(sql, values, (err, results) => {
+        if (err) throw err;
+        res.json(results);
+    });
+})
+
 app.get('/api/getCompleted', (req, res) => {
     var teamId = req.query.teamId;
     const sql = 'SELECT cl.Cell, cl.Status, t.Task  from CurrentLayouts cl inner join Tasks t on cl.TaskId =t.Id where (Status >0 or t.Difficulty =0) and Team = ?';
