@@ -4,6 +4,11 @@ body {
     background-color: #000;
 }
 
+#teamHeader {
+    text-align: center;
+    border-bottom: 2px solid black; /* Underline thickness and color */
+    padding-bottom: 5px; /* Adds space between text and underline */
+}
 #rulesList {
     column-count: 2; /* Creates two columns */
     column-gap: 1rem; /* Space between columns */
