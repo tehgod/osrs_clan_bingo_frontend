@@ -223,6 +223,7 @@ function bindOnClicks() {
             document.getElementById("selectedTileUrlsList").innerHTML=""
             document.getElementById('selectedTile').value = tile.id;
             document.getElementById('selectedTileTask').textContent =`${tile.textContent}`;
+            document.getElementById('selectedTileUrlsValues').value = "[]"
             if (tile.classList.contains("completed")){
                 document.getElementById('selectedTileCompleted').checked=true
             } else {
