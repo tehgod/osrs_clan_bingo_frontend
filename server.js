@@ -77,7 +77,6 @@ app.post('/api/update-tile', async (req, res) => {
             if (err) throw err;
         });
     
-
         var inProgressTiles = getAdjacentCells(tile)
         
         inProgressTiles.forEach((inProgressTile) => {

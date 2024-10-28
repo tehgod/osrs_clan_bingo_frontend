@@ -89,21 +89,21 @@ function loadScoreboard() {
     ]);
 
     // Total possible row with IDs and difficulty/completed attributes
-    const totalPossibleRow = createRow([
-        { text: "Total Possible" },
-        { id: "possibleBeginnerPoints", class: "beginner" },
-        { id: "possibleEasyPoints", class: "easy" },
-        { id: "possibleMediumPoints", class: "medium" },
-        { id: "possibleHardPoints", class: "hard" },
-        { id: "possibleElitePoints", class: "elite" },
-        { id: "possibleMasterPoints", class: "master" },
-        { id: "totalPossiblePoints", class: "completed" }
+    const totalRow = createRow([
+        { text: "Total" },
+        { id: "beginnerPoints", class: "beginner" },
+        { id: "easyPoints", class: "easy" },
+        { id: "mediumPoints", class: "medium" },
+        { id: "hardPoints", class: "hard" },
+        { id: "elitePoints", class: "elite" },
+        { id: "masterPoints", class: "master" },
+        { id: "totalPoints", class: "completed" }
     ]);
 
     // Append rows to table body
     tableBody.appendChild(headerRow);
     tableBody.appendChild(defaultPointsRow);
-    tableBody.appendChild(totalPossibleRow);
+    tableBody.appendChild(totalRow);
 }
 
 async function loadBingoBoard() {
@@ -266,10 +266,33 @@ function bindOnClicks() {
     });
 }
 
+function calculatePoints() {
+    const difficulties = [
+        { level: "beginner", multiplier: 1 },
+        { level: "easy", multiplier: 2 },
+        { level: "medium", multiplier: 3 },
+        { level: "hard", multiplier: 4 },
+        { level: "elite", multiplier: 5 },
+        { level: "master", multiplier: 6 }
+    ];
+
+    let totalPoints = 0;
+
+    difficulties.forEach(({ level, multiplier }) => {
+        const points = document.querySelectorAll(`.completed.${level}`).length * multiplier;
+        document.getElementById(`${level}Points`).textContent = points;
+        totalPoints += points;
+    });
+
+    document.getElementById("totalPoints").textContent = totalPoints;
+}
+
+
 (async () => {
     // Create Grid
     loadScoreboard();
     await loadBingoBoard();
     calculateScore();
     bindOnClicks();
+    calculatePoints();
 })(); // Immediately invoke the async function
