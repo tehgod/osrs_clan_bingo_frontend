@@ -1,5 +1,3 @@
-
-
 function a1ToNumber(a1) {
     // Extract column letters and row number
     const match = a1.match(/([a-zA-Z]+)(\d+)/); // Allow both lowercase and uppercase
@@ -183,42 +181,33 @@ async function loadBingoBoard() {
     })
 }
 
-function calculateScore() {
-    completedElements = document.querySelectorAll('[completed="true"]');
+function buildLink(linkUrl) {
+    var rowTemplate = document.getElementById("imageRowTemplate").childNodes[1].cloneNode(true)
+    var linkNode = rowTemplate.querySelector("a")
+    var deleteButton = rowTemplate.querySelector("i")
+    linkNode.href = linkUrl
+    linkNode.textContent = `Picture`
+    deleteButton.onclick = () => {
+        rowTemplate.remove();
+        const currentUrls = JSON.parse(document.getElementById("selectedTileUrlsValues").value || '[]');
+        const index = currentUrls.indexOf(linkUrl);
+        console.log(index)
+        if (index > -1) {
+            currentUrls.splice(index, 1);
+        }
+        document.getElementById("selectedTileUrlsValues").value=JSON.stringify(currentUrls)
+    };
+    document.getElementById('selectedTileUrlsList').appendChild(rowTemplate);
+    var currentUrls = JSON.parse(document.getElementById("selectedTileUrlsValues").value || '[]');
+    currentUrls.push(linkUrl)
+    document.getElementById("selectedTileUrlsValues").value=JSON.stringify(currentUrls)
+    linkInput.value = ''
 }
 
 function addLink() {
     linkUrl = document.getElementById("linkInput").value
-    linkCount = 1+(document.getElementById("selectedTileUrlsList").querySelectorAll("li")).length
-    if (linkUrl) {
-        // Create a new list item
-        const listItem = document.createElement('li');
-
-        // Create the hyperlink
-        const link = document.createElement('a');
-        link.href = linkUrl;
-        link.textContent = `Picture ${linkCount++}`;
-
-        // Create and add remove button
-        const removeButton = document.createElement('button');
-        removeButton.textContent = 'Remove';
-        removeButton.classList.add('remove-btn');
-        removeButton.onclick = () => {
-            listItem.remove();
-            const currentUrls = JSON.parse(document.getElementById("selectedTileUrlsValues").value || '[]');
-            const updatedUrls = currentUrls.filter(item => item !== listItem.querySelector("a").href);
-            document.getElementById("selectedTileUrlsValues").value=JSON.stringify(updatedUrls)
-        };
-
-        // Append link and button to list item, and list item to list
-        listItem.appendChild(link);
-        listItem.appendChild(removeButton);
-        document.getElementById('selectedTileUrlsList').appendChild(listItem);
-        var currentUrls = JSON.parse(document.getElementById("selectedTileUrlsValues").value || '[]');
-        currentUrls.push(linkUrl)
-        document.getElementById("selectedTileUrlsValues").value=JSON.stringify(currentUrls)
-        // Clear input field
-        linkInput.value = '';
+    if ((linkUrl) && (linkUrl.includes("http"))) {
+        buildLink(linkUrl)
     } else {
         alert("Please enter a valid URL.");
     }
@@ -233,33 +222,16 @@ function bindOnClicks() {
         tile.addEventListener("click", function() {
             document.getElementById("selectedTileUrlsList").innerHTML=""
             document.getElementById('selectedTile').value = tile.id;
-            document.getElementById('selectedTileTask').textContent =`Task: ${tile.textContent}`;
+            document.getElementById('selectedTileTask').textContent =`${tile.textContent}`;
             if (tile.classList.contains("completed")){
                 document.getElementById('selectedTileCompleted').checked=true
             } else {
                 document.getElementById('selectedTileCompleted').checked=false
             }
             const urls = JSON.parse(tile.getAttribute('data-urls') || '[]');
-            var i = 1
-            document.getElementById("selectedTileUrlsValues").value=JSON.stringify(urls)
             urls.forEach((url) => {
-                listItem = document.createElement("li")
-                link = document.createElement("a")
-                link.textContent = `Picture ${i}`;
-                link.href = url;
-                listItem.appendChild(link)
-                const removeButton = document.createElement('button');
-                removeButton.textContent = 'Remove';
-                removeButton.classList.add('remove-btn');
-                removeButton.onclick = () => {
-                    listItem.remove();
-                    const currentUrls = JSON.parse(tile.getAttribute('data-urls') || '[]');
-                    const updatedUrls = currentUrls.filter(item => item !== listItem.querySelector("a").href);
-                    document.getElementById("selectedTileUrlsValues").value=JSON.stringify(updatedUrls)
-                };
-                listItem.appendChild(removeButton)
-                document.getElementById("selectedTileUrlsList").appendChild(listItem)
-                i++;
+                console.log(url)
+                buildLink(url)
             });
             
         });
@@ -292,7 +264,6 @@ function calculatePoints() {
     // Create Grid
     loadScoreboard();
     await loadBingoBoard();
-    calculateScore();
     bindOnClicks();
     calculatePoints();
 })(); // Immediately invoke the async function
