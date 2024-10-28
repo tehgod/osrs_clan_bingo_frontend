@@ -49,27 +49,45 @@ db.connect((err) => {
 });
 
 // API endpoint to fetch data
-app.post('/api/complete-tile', async (req, res) => {
-    var completedTile = req.body.tile;
+app.post('/api/update-tile', async (req, res) => {
+    var tile = req.body.selectedTile;
     var teamId = req.body.teamId;
-    const imageUrls = Array.isArray(req.body.imageUrl) ? req.body.imageUrl : [req.body.imageUrl];
-    for (const imageUrl of imageUrls) {
-        console.log(imageUrl)
-    }
-    var inProgressTiles = getAdjacentCells(completedTile)
-    const sql = `UPDATE CurrentLayouts SET Status = 1 WHERE Cell = ? and Team =?`;
-    const values = [completedTile, teamId];
+    var imageUrls = JSON.parse(req.body.selectedTileUrlsValues || '[]');
+    var completionStatus = req.body.selectedTileCompleted === 'on';
+    // const imageUrls = Array.isArray(req.body.imageUrl) ? req.body.imageUrl : [req.body.imageUrl];
+
+    var sql = `DELETE FROM CurrentLayoutUrls WHERE Team = ? AND Cell = ?`;
+    var values = [teamId, tile];
     db.query(sql, values, (err, results) => {
         if (err) throw err;
     });
 
-    inProgressTiles.forEach((inProgressTile) => {
-        var sql = `UPDATE CurrentLayouts SET Status = 2 WHERE Cell = ? and Team = ?`;
-        var values = [inProgressTile, teamId];
+    for (const imageUrl of imageUrls) {
+        console.log(imageUrl)
+        var sql = `INSERT INTO CurrentLayoutUrls VALUES (?, ?, ?)`;
+        var values = [teamId, tile, imageUrl];
         db.query(sql, values, (err, results) => {
             if (err) throw err;
         });
-    });
+    }
+    if (completionStatus) {
+        const sql = `UPDATE CurrentLayouts SET Status = 1 WHERE Cell = ? and Team =?`;
+        const values = [tile, teamId];
+        db.query(sql, values, (err, results) => {
+            if (err) throw err;
+        });
+    
+
+        var inProgressTiles = getAdjacentCells(tile)
+        
+        inProgressTiles.forEach((inProgressTile) => {
+            var sql = `UPDATE CurrentLayouts SET Status = 2 WHERE Status = 0 AND Cell = ? AND Team = ?`;
+            var values = [inProgressTile, teamId];
+            db.query(sql, values, (err, results) => {
+                if (err) throw err;
+            });
+        });
+    }
     res.redirect('/');
 });
 
