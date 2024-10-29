@@ -35,6 +35,18 @@ function getAdjacentCells(cell) {
     return adjacentCells;
 }
 
+async function sendDiscordUpdate(webhookUrl, payload){
+    
+    await fetch(webhookUrl, {
+            method: "POST",
+            headers: {
+                'Content-type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+    })
+    
+}
+
 const db = mysql.createConnection({
     host: process.env.MYSQL_HOST,
     port: 3306,
@@ -55,7 +67,6 @@ app.post('/api/update-tile', async (req, res) => {
     var imageUrls = JSON.parse(req.body.selectedTileUrlsValues || '[]');
     var completionStatus = req.body.selectedTileCompleted === 'on';
     // const imageUrls = Array.isArray(req.body.imageUrl) ? req.body.imageUrl : [req.body.imageUrl];
-
     var sql = `DELETE FROM CurrentLayoutUrls WHERE Team = ? AND Cell = ?`;
     var values = [teamId, tile];
     db.query(sql, values, (err, results) => {
@@ -70,6 +81,60 @@ app.post('/api/update-tile', async (req, res) => {
             if (err) throw err;
         });
     }
+
+    var inProgressTiles = await new Promise((resolve, reject) => {
+        const sql = `SELECT cl.Cell, cl.Status, t.Task  from CurrentLayouts cl inner join Tasks t on cl.TaskId =t.Id where Status = 2 AND Team = ?`;
+        var values = [teamId];
+        db.query(sql, values, (err, results) => {
+            if (err) return reject(err);
+            resolve(results);
+        });
+    });
+
+    var inProgressTilesRules = await new Promise((resolve, reject) => {
+        var sql = 'SELECT cl.Cell, tr.Rule FROM CurrentLayouts cl INNER JOIN TasksRules tr ON cl.TaskId = tr.TasksId WHERE Team = ? AND Status!=0';
+        var values = [teamId]
+        db.query(sql, values, (err, results) => {
+            if (err) return reject(err);
+            resolve(results);
+        });
+    });
+
+    const fields = inProgressTiles.map(tile => {
+        // Find rules for the current tile's Cell
+        const rulesForTile = inProgressTilesRules
+            .filter(rule => rule.Cell === tile.Cell)
+            .map(rule => `- ${rule.Rule}`) // Prefix each rule with a dash for readability
+    
+        // Format the rules into a single string for Discord
+        const rulesText = rulesForTile.length > 0 ? rulesForTile.join('\n') : "No additional rules.";
+    
+        return {
+            name: `----- ${tile.Task} -----`, // Bold and italic with invisible characters for centering
+            value: rulesText, // Associated rules as the field value
+            inline: false // Set inline to false for better layout
+        };
+    });
+    
+    // Define the parameters for the Discord embedded message
+    const params = {
+        username: "BingoBot",
+        avatar_url: "", // Optional avatar URL for the bot
+        content: "Current In-Progress Tasks and Rules",
+        embeds: [
+            {
+                title: "In-Progress Tasks",
+                color: 15258703,
+                thumbnail: {
+                    url: "" // Optional thumbnail URL
+                },
+                fields: fields // Attach the fields array we created
+            }
+        ]
+    };
+
+    sendDiscordUpdate(url, params)
+
     if (completionStatus) {
         const sql = `UPDATE CurrentLayouts SET Status = 1 WHERE Cell = ? and Team =?`;
         const values = [tile, teamId];
@@ -87,6 +152,8 @@ app.post('/api/update-tile', async (req, res) => {
             });
         });
     }
+
+
     res.redirect('/');
 });
 
