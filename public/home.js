@@ -104,8 +104,14 @@ function loadScoreboard() {
     tableBody.appendChild(totalRow);
 }
 
-async function loadBingoBoard() {
-    const teamId = 1;
+async function loadUserInfo() {
+    var userInfo = await fetch(`/api/userInfo`)
+        .then(response => response.json());
+
+    return userInfo[0]
+}
+
+async function loadBingoBoard(teamId) {
 
     document.title=`Team ${teamId}`;
 
@@ -166,9 +172,7 @@ async function loadBingoBoard() {
     const ruleData = await fetch(`/api/getRules?teamId=${teamId}`)
         .then(response => response.json())
     
-    console.log(ruleData)
     ruleData.forEach((rule) => {
-        console.log(rule)
         tableCell = document.getElementById(rule.Cell)
         currentRules = JSON.parse(tableCell.getAttribute("data-rules") || '[]')
         currentRules.push(rule.Rule)
@@ -204,7 +208,6 @@ function buildLink(linkUrl) {
         rowTemplate.remove();
         const currentUrls = JSON.parse(document.getElementById("selectedTileUrlsValues").value || '[]');
         const index = currentUrls.indexOf(linkUrl);
-        console.log(index)
         if (index > -1) {
             currentUrls.splice(index, 1);
         }
@@ -226,7 +229,7 @@ function addLink() {
     }
 }
 
-function bindOnClicks() {
+function bindOnClicks(approver) {
     // Select all <td> elements with the class "clickable"
     const bingoBoardTiles = document.querySelectorAll("#bingo-board td");
 
@@ -240,10 +243,12 @@ function bindOnClicks() {
             document.getElementById('selectedTile').value = tile.id;
             document.getElementById('selectedTileTask').textContent =`${tile.textContent}`;
             
-            if (tile.classList.contains("completed")){
-                document.getElementById('selectedTileCompleted').checked=true
-            } else {
-                document.getElementById('selectedTileCompleted').checked=false
+            if (approver == 1) {
+                if (tile.classList.contains("completed")){
+                    document.getElementById('selectedTileCompleted').checked=true
+                } else {
+                    document.getElementById('selectedTileCompleted').checked=false
+                }
             }
             const urls = JSON.parse(tile.getAttribute('data-urls') || '[]');
             urls.forEach((url) => {
@@ -280,11 +285,24 @@ function calculatePoints() {
     document.getElementById("totalPoints").textContent = totalPoints;
 }
 
+async function setSessionAttributes(approver, discordUrl) {
+    const templateNumber = await fetch(`/api/setSessionObjects?approver=${approver}&discordUrl=${discordUrl}`)
+    .then(response => response.json())
+}
+
+function applyUserChanges(approverStatus) {
+    if (approverStatus!=1){
+        document.getElementById("completedRow").remove();
+    }
+}
 
 (async () => {
     // Create Grid
+    userInfo = await loadUserInfo()
+    await setSessionAttributes(userInfo.Approver,userInfo.DiscordWebhook); 
+    applyUserChanges(userInfo.Approver)
     loadScoreboard();
-    await loadBingoBoard();
-    bindOnClicks();
+    await loadBingoBoard(userInfo.Team);
+    bindOnClicks(userInfo.Approver);
     calculatePoints();
 })(); // Immediately invoke the async function
