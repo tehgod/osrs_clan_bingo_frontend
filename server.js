@@ -64,6 +64,9 @@ db.connect((err) => {
 app.post('/api/update-tile', async (req, res) => {
     var tile = req.body.selectedTile;
     var teamId = req.body.teamId;
+    if ((!teamId) || (tile = "")) {
+        res.redirect('/');
+    }
     var imageUrls = JSON.parse(req.body.selectedTileUrlsValues || '[]');
     var completionStatus = req.body.selectedTileCompleted === 'on';
     // const imageUrls = Array.isArray(req.body.imageUrl) ? req.body.imageUrl : [req.body.imageUrl];
