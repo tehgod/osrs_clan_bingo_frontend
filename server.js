@@ -130,7 +130,12 @@ app.post('/api/update-tile', async (req, res) => {
     var tile = req.body.selectedTile;
     var teamId = req.body.teamId;
     if ((!teamId) || (tile == "")) {
-        return res.redirect('/');
+        res.send(`
+                    <script>
+                        alert('Please select a tile, and try again.');
+                        window.location.href = '/home'; // Redirect to login page
+                    </script>
+                `);
     }
     var imageUrls = JSON.parse(req.body.selectedTileUrlsValues || '[]');
     var completionStatus = ((req.body.selectedTileCompleted === 'on') && (req.session.approver==1))
