@@ -70,9 +70,9 @@ db.connect((err) => {
     console.log('Connected to MySQL Database!');
 });
 
-app.get('/', function(request, response) {
+app.get('/', function(req, res) {
 	// Render login template
-	response.sendFile(path.join(__dirname, 'public', 'login.html'));
+	res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 app.post('/auth', function(req, res) {
@@ -130,7 +130,7 @@ app.post('/api/update-tile', async (req, res) => {
     var tile = req.body.selectedTile;
     var teamId = req.body.teamId;
     if ((!teamId) || (tile == "")) {
-        res.redirect('/');
+        return res.redirect('/');
     }
     var imageUrls = JSON.parse(req.body.selectedTileUrlsValues || '[]');
     var completionStatus = ((req.body.selectedTileCompleted === 'on') && (req.session.approver==1))
@@ -218,7 +218,7 @@ app.post('/api/update-tile', async (req, res) => {
             ]
         };
 
-        sendDiscordUpdate(req.session.discordUrl, params)
+        await sendDiscordUpdate(req.session.discordUrl, params)
     }
 
 
