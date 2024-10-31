@@ -58,6 +58,7 @@ i {
     -webkit-line-clamp: 5;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    cursor: pointer;
 }
 
 /* Difficulty color styles */
