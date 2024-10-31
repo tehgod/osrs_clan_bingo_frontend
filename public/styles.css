@@ -48,7 +48,7 @@ i {
     font-size: 24px;
 }
 
-#bingo-board td, #bingo-board th {
+#bingo-board td {
     border: 1.2px solid #000;
     padding: 8px;
     text-align: center;
