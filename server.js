@@ -178,7 +178,7 @@ app.post('/api/update-tile', async (req, res) => {
     } 
 
     for (const imageUrl of imageUrls) {
-        var sql = `INSERT INTO CurrentLayoutUrls VALUES (?, ?, ?)`;
+        var sql = `INSERT INTO CurrentLayoutUrls(Team, Cell, Url) VALUES (?, ?, ?)`;
         var values = [teamId, tile, imageUrl];
         try {
             await queryDatabase(sql, values)
