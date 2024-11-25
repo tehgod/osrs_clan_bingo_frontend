@@ -116,7 +116,7 @@ app.post('/auth', async function(req, res) {
                 req.session.loggedin = true;
                 req.session.username = username;
                 // Redirect to home page
-                res.redirect('/board/board.html');
+                res.redirect('/board');
             } else {
                 res.send(`
                     <script>
@@ -135,10 +135,10 @@ app.post('/auth', async function(req, res) {
     }
 });
 
-app.get('/home', function(req, res) {
-    if (req.session.loggedin) {
+app.get('/board', function(req, res) {
+    if (req.session.loggedin && req.session.username) {
 		// Output username
-        res.sendFile(path.join(path.join(__dirname, 'public', '/board/board.html')));
+        res.sendFile(path.join(path.join(__dirname, 'public', 'board', 'board.html')));
 	} else {
 		// Not logged in
 		res.send(`

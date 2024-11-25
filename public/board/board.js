@@ -236,6 +236,7 @@ function bindOnClicks(approver) {
     // Loop through each <td> and add an onclick event listener
     bingoBoardTiles.forEach(tile => {
         tile.addEventListener("click", function() {
+            window.scrollTo(0, 0);
             document.getElementById('selectedTileUrlsValues').value = "[]"
             document.getElementById('rulesList').innerHTML = ""
 
