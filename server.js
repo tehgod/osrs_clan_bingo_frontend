@@ -45,6 +45,15 @@ function getAdjacentCells(cell) {
     return adjacentCells;
 }
 
+function redirectToLogin(res) {
+    res.send(`
+        <script>
+            alert('Please login to continue');
+            window.location.href = '/'; // Redirect to login page
+        </script>
+    `);
+}
+
 async function sendDiscordUpdate(webhookUrl, payload){
     
     await fetch(webhookUrl, {
@@ -150,16 +159,19 @@ app.get('/board', function(req, res) {
 		// Output username
         res.sendFile(path.join(path.join(__dirname, 'public', 'board', 'board.html')));
 	} else {
-		// Not logged in
-		res.send(`
-                    <script>
-                        alert('Please login to continue');
-                        window.location.href = '/'; // Redirect to login page
-                    </script>
-                `);
+        redirectToLogin(res);
 	}
 	// Render login template
 	// 
+});
+
+app.get('/players', function(req, res) {
+    if (req.session.loggedin && req.session.username) {
+        res.sendFile(path.join(__dirname, 'public', 'playerStats', 'playerStats.html'));
+    }
+    else {
+		redirectToLogin(res);
+	}
 });
 
 // API endpoint to fetch data
@@ -277,7 +289,7 @@ app.post('/api/update-tile', async (req, res) => {
     }
 
 
-    res.redirect('/board/board.html');
+    res.redirect('/board');
 });
 
 app.get('/api/getTemplateNumber', async (req, res) => {
@@ -362,15 +374,26 @@ app.get('/api/userInfo', async (req, res) => {
 });
 
 app.get('/api/getTeamMembers', async (req, res) => {
-    const sql = 'SELECT * from Teams where TeamId = ?';
+    const sql = 'SELECT tm.Username from TeamMembers tm WHERE tm.Team = ?';
     const values = [req.session.teamId]
     try {
+        var usernames = []
         const results = await queryDatabase(sql, values)
-        res.json(results);
+        for (item in results) {
+            usernames.push(results[item].Username)
+        };
+        res.json(usernames);
     } catch (error) {
         console.error('Database query error:', error);
         throw error;
     }
+});
+
+app.get('/api/getPlayerStats', async (req, res) => {
+    var username = req.query.username;
+    const response = await fetch(`https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${username}`);
+    const data = await response.json();
+    res.json(data);
 });
 
 app.listen(port, () => {
