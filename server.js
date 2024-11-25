@@ -96,7 +96,7 @@ db.connect((err) => {
 
 app.get('/', function(req, res) {
 	// Render login template
-	res.sendFile(path.join(__dirname, 'public', 'login.html'));
+	res.sendFile(path.join(__dirname, 'public', 'login/login.html'));
 });
 
 app.post('/auth', async function(req, res) {
@@ -116,7 +116,7 @@ app.post('/auth', async function(req, res) {
                 req.session.loggedin = true;
                 req.session.username = username;
                 // Redirect to home page
-                res.redirect('/home');
+                res.redirect('/board/board.html');
             } else {
                 res.send(`
                     <script>
@@ -138,8 +138,7 @@ app.post('/auth', async function(req, res) {
 app.get('/home', function(req, res) {
     if (req.session.loggedin) {
 		// Output username
-        res.sendFile(path.join(path.join(__dirname, 'public', 'home.html')));
-		// response.send('Welcome back, ' + request.session.username + '!');
+        res.sendFile(path.join(path.join(__dirname, 'public', '/board/board.html')));
 	} else {
 		// Not logged in
 		res.send(`
@@ -266,7 +265,7 @@ app.post('/api/update-tile', async (req, res) => {
     }
 
 
-    res.redirect('/home');
+    res.redirect('/board/board.html');
 });
 
 app.get('/api/getTemplateNumber', async (req, res) => {
