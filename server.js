@@ -96,7 +96,11 @@ db.connect((err) => {
 
 app.get('/', function(req, res) {
 	// Render login template
-	res.sendFile(path.join(__dirname, 'public', 'login/login.html'));
+    if (req.session.loggedin && req.session.username) {
+        res.redirect('/board');
+    } else {
+	    res.sendFile(path.join(__dirname, 'public', 'login/login.html'));
+    }
 });
 
 app.post('/auth', async function(req, res) {
@@ -115,7 +119,7 @@ app.post('/auth', async function(req, res) {
                 // Authenticate the user
                 req.session.loggedin = true;
                 req.session.username = username;
-                // Redirect to home page
+                // Redirect to board page
                 res.redirect('/board');
             } else {
                 res.send(`
@@ -133,6 +137,12 @@ app.post('/auth', async function(req, res) {
         response.send('Please enter Username and Password!');
         response.end();
     }
+});
+
+app.get('/logout', function(req, res) {
+    req.session.destroy((err) => {
+        res.redirect('/') // will always fire after session is destroyed
+      })
 });
 
 app.get('/board', function(req, res) {
@@ -155,17 +165,19 @@ app.get('/board', function(req, res) {
 // API endpoint to fetch data
 app.post('/api/update-tile', async (req, res) => {
     var tile = req.body.selectedTile;
-    var teamId = req.body.teamId;
+    var teamId = req.session.teamId;
     if ((!teamId) || (tile == "")) {
         return res.send(`
                     <script>
                         alert('Please select a tile, and try again.');
-                        window.location.href = '/home'; // Redirect to login page
+                        window.location.href = '/board'; // Redirect to login page
                     </script>
                 `);
     }
     var imageUrls = JSON.parse(req.body.selectedTileUrlsValues || '[]');
-    var completionStatus = ((req.body.selectedTileCompleted === 'on') && (req.session.approver==1))
+    var completionStatus = (
+        (req.body.selectedTileCompleted === 'on') 
+        && (req.session.approver==1))
     // const imageUrls = Array.isArray(req.body.imageUrl) ? req.body.imageUrl : [req.body.imageUrl];
     var sql = `DELETE FROM CurrentLayoutUrls WHERE Team = ? AND Cell = ?`;
     var values = [teamId, tile];
@@ -269,7 +281,7 @@ app.post('/api/update-tile', async (req, res) => {
 });
 
 app.get('/api/getTemplateNumber', async (req, res) => {
-    var teamId = req.query.teamId;
+    var teamId = req.session.teamId;
     const sql = 'SELECT DISTINCT Template from CurrentLayouts cl where Team = ?';
     const values = [teamId]
     try {
@@ -295,7 +307,7 @@ app.get('/api/getTemplate', async (req, res) => {
 });
 
 app.get('/api/getRules', async (req, res) =>{
-    var teamId = req.query.teamId;
+    var teamId = req.session.teamId;
     const sql = 'SELECT cl.Cell, tr.Rule FROM CurrentLayouts cl INNER JOIN TasksRules tr ON cl.TaskId = tr.TasksId WHERE Team = ? AND Status!=0';
     const values = [teamId]
     try {
@@ -308,7 +320,7 @@ app.get('/api/getRules', async (req, res) =>{
 })
 
 app.get('/api/getCompleted', async (req, res) => {
-    var teamId = req.query.teamId;
+    var teamId = req.session.teamId;
     const sql = 'SELECT cl.Cell, cl.Status, t.Task  from CurrentLayouts cl inner join Tasks t on cl.TaskId =t.Id where (Status >0 or t.Difficulty =0) and Team = ?';
     const values = [teamId]
     try {
@@ -321,7 +333,7 @@ app.get('/api/getCompleted', async (req, res) => {
 });
 
 app.get('/api/getUrls', async (req, res) => {
-    var teamId = req.query.teamId;
+    var teamId = req.session.teamId;
     const sql = 'SELECT clu.Cell, clu.Url from CurrentLayoutUrls clu WHERE Team = ?';
     const values = [teamId]
     try {
@@ -339,6 +351,9 @@ app.get('/api/userInfo', async (req, res) => {
     const values = [username]
     try {
         const results = await queryDatabase(sql, values)
+        req.session.approver = results[0].Approver;
+        req.session.discordUrl = results[0].DiscordWebhook;
+        req.session.teamId = results[0].Team;
         res.json(results);
     } catch (error) {
         console.error('Database query error:', error);
@@ -346,12 +361,17 @@ app.get('/api/userInfo', async (req, res) => {
     }
 });
 
-app.get('/api/setSessionObjects', (req, res) => {
-    req.session.approver = req.query.approver;
-    req.session.discordUrl = req.query.discordUrl;
-    res.json({})
-})
-
+app.get('/api/getTeamMembers', async (req, res) => {
+    const sql = 'SELECT * from Teams where TeamId = ?';
+    const values = [req.session.teamId]
+    try {
+        const results = await queryDatabase(sql, values)
+        res.json(results);
+    } catch (error) {
+        console.error('Database query error:', error);
+        throw error;
+    }
+});
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);

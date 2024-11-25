@@ -9,75 +9,96 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </head>
-<body class="container-fluid">
-    <div>
-        <h1 id="teamHeader"></h1>
-    </div>
+
+
+
+<body>
+    <!-- class="container-fluid" -->
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <a id="teamHeader" class="navbar-brand" href="#">Navbar</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+              <div class="navbar-nav">
+                <a class="nav-item nav-link active" href="#">Home</a>
+                <a class="nav-item nav-link" href="#">Team Members</a>
+                <a class="nav-item nav-link" href="#">Xp Tracking</a>
+                <a class="nav-item nav-link" href="/logout">Logout</a>
+              </div>
+            </div>
+          </nav>
+    </header>
     
-    <div class="row" style="padding-top: 25px;">
-        <div class="col-4">
-        <form action="/api/update-tile" method="post">
-            <div class="mb-3 row"> <!--Task text-->
-                <div class="col-2">
-                    Task:
-                </div>
-                <div class="col" id="selectedTileTask" style="min-height: 60px;">
+    <!-- <div>
+        <h1 id="teamHeader"></h1>
+    </div> -->
+    <div class="container-fluid">
+        <div class="row" style="padding-top: 25px;">
+            <div class="col-4">
+            <form action="/api/update-tile" method="post">
+                <div class="mb-3 row"> <!--Task text-->
+                    <div class="col-2">
+                        Task:
+                    </div>
+                    <div class="col" id="selectedTileTask" style="min-height: 60px;">
 
+                    </div>
                 </div>
-            </div>
-            <div class="mb-3 row"> <!--Tile Selected-->
-                <div class="col">
-                    <label for="selectedTile" class="form-label col">Tile:</label>
+                <div class="mb-3 row"> <!--Tile Selected-->
+                    <div class="col">
+                        <label for="selectedTile" class="form-label col">Tile:</label>
+                    </div>
+                    <div class="col">
+                        <input class="form-control" type="text" id="selectedTile" name="selectedTile" autocomplete="off" readonly>
+                    </div>
                 </div>
-                <div class="col">
-                    <input class="form-control" type="text" id="selectedTile" name="selectedTile" autocomplete="off" readonly>
+                <div class="mb-3 row" id="completedRow"> <!--Completed-->
+                    <div class="col">
+                        <label for="selectedTileCompleted">Completed</label>
+                    </div>
+                    <div class="col">
+                        <input type="checkbox" id="selectedTileCompleted" name="selectedTileCompleted">
+                    </div>
                 </div>
-            </div>
-            <div class="mb-3 row" id="completedRow"> <!--Completed-->
-                <div class="col">
-                    <label for="selectedTileCompleted">Completed</label>
+                <div class="mb-3 row"> <!--URL Entry-->
+                    <div class="col">
+                        <input class="form-control" type="url" id="linkInput" placeholder="Enter URL">
+                    </div>
+                    <div class="col">
+                        <button type="button" class="btn btn-success" onclick="addLink()">Add URL</button><br>
+                    </div>
                 </div>
-                <div class="col">
-                    <input type="checkbox" id="selectedTileCompleted" name="selectedTileCompleted">
+                <div id="selectedTileUrlsList"></div>
+                <div id="imageRowTemplate">
+                    <div class="row mb-3">
+                        <a class="col"></a>
+                        <i class="bi bi-dash-circle col"></i>
+                    </div>
                 </div>
-            </div>
-            <div class="mb-3 row"> <!--URL Entry-->
-                <div class="col">
-                    <input class="form-control" type="url" id="linkInput" placeholder="Enter URL">
-                </div>
-                <div class="col">
-                    <button type="button" class="btn btn-success" onclick="addLink()">Add URL</button><br>
-                </div>
-            </div>
-            <div id="selectedTileUrlsList"></div>
-            <div id="imageRowTemplate">
-                <div class="row mb-3">
-                    <a class="col"></a>
-                    <i class="bi bi-dash-circle col"></i>
-                </div>
-            </div>
 
-            <div class="mb-3 row">
-                <div class="col">
-                    <button type="submit" class="btn btn-primary" style="width: 100%;">Submit</button>
+                <div class="mb-3 row">
+                    <div class="col">
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Submit</button>
+                    </div>
                 </div>
+                
+                <input type="hidden" id="selectedTileUrlsValues" autocomplete="off" name="selectedTileUrlsValues" value='[]'>
+                <input type="hidden" id="teamId" name="teamId" value=''>
+                
+            </form>
             </div>
-            
-            <input type="hidden" id="selectedTileUrlsValues" autocomplete="off" name="selectedTileUrlsValues" value='[]'>
-            <input type="hidden" id="teamId" name="teamId" value=''>
-            
-        </form>
-        </div>
-        <div class="col-5">
-            <div>   
-                <h3>Task Rules:</h3>
-                <ul id="rulesList" class="list">
+            <div class="col-5">
+                <div>   
+                    <h3>Task Rules:</h3>
+                    <ul id="rulesList" class="list">
 
-                </ul>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
-
     <table id="scoreboard">
         <tbody>
         </tbody>

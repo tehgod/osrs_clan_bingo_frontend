@@ -119,7 +119,7 @@ async function loadBingoBoard(teamId) {
 
     document.getElementById("teamHeader").textContent=`Team ${teamId}`;
 
-    const templateNumber = await fetch(`/api/getTemplateNumber?teamId=${teamId}`)
+    const templateNumber = await fetch(`/api/getTemplateNumber`)
         .then(response => response.json())
         .then(data => data[0].Template);
 
@@ -157,7 +157,7 @@ async function loadBingoBoard(teamId) {
         document.getElementById(tile.Cell).classList.add(tile.Difficulty)
     });
 
-    const tileUrls = await fetch(`/api/getUrls?teamId=${teamId}`)
+    const tileUrls = await fetch(`/api/getUrls`)
         .then(response => response.json())
     
     const urlsMap = {};
@@ -169,7 +169,7 @@ async function loadBingoBoard(teamId) {
         urlsMap[item.Cell].push(item.Url);
     });
 
-    const ruleData = await fetch(`/api/getRules?teamId=${teamId}`)
+    const ruleData = await fetch(`/api/getRules`)
         .then(response => response.json())
     
     ruleData.forEach((rule) => {
@@ -186,7 +186,7 @@ async function loadBingoBoard(teamId) {
         }
     }
 
-    const completedTiles = await fetch(`/api/getCompleted?teamId=${teamId}`)
+    const completedTiles = await fetch(`/api/getCompleted`)
         .then(response => response.json())
 
     completedTiles.forEach((tile) => {
@@ -300,7 +300,6 @@ function applyUserChanges(approverStatus) {
 (async () => {
     // Create Grid
     userInfo = await loadUserInfo()
-    await setSessionAttributes(userInfo.Approver,userInfo.DiscordWebhook); 
     applyUserChanges(userInfo.Approver)
     loadScoreboard();
     await loadBingoBoard(userInfo.Team);
