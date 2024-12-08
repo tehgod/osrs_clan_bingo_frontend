@@ -449,6 +449,28 @@ app.get('/api/getTeamActivityStats', async (req, res) => {
     }
 });
 
+app.get('/api/setCurrentValues', async (req, res) => {
+    const sql = `INSERT INTO HighscoreData (Username, Activity, Score, RecordType)
+    SELECT hd.Username, hd.Activity, hd.Score, "Pinned" as RecordType
+    FROM HighscoreData hd
+    INNER JOIN TeamMembers tm ON hd.Username = tm.Username
+    WHERE tm.Team = ? AND hd.Activity = ?
+    AND NOT EXISTS (
+        SELECT 1
+        FROM HighscoreData target
+        WHERE target.Username = hd.Username
+          AND target.Activity = hd.Activity
+          AND target.RecordType = "Pinned"
+    );`;
+    try {
+        await queryDatabase(sql, [req.session.teamId, req.query.activity]);
+        res.json({ message: 'Current values set successfully' });
+    } catch (error) {
+        console.error('Database query error:', error);
+        throw error;
+    }
+});
+
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
 });

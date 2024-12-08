@@ -17,14 +17,9 @@
     <header>
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <a id="teamHeader" class="navbar-brand" href="#">Navbar</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
-              <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
               <div class="navbar-nav">
                 <a class="nav-item nav-link" href="/board">Board</a>
                 <a class="nav-item nav-link active" href="/players">Team Xp</a>
-                <a class="nav-item nav-link" href="#">Xp Tracking</a>
                 <a class="nav-item nav-link" href="/logout">Logout</a>
               </div>
             </div>
@@ -41,16 +36,19 @@
               <button id="update-button" class="btn btn-primary me-2">Update Team Xp</button>
               
               <!-- PIN Selected Stats Button -->
-              <button id="pin-button" class="btn btn-primary">PIN Selected Stats</button>
+              <button id="set-button" class="btn btn-primary">Set Starting Score/XP</button>
           </div>
       </div>
   
       <!-- Player Selection Dropdown -->
       <div class="mb-3">
+        <label for="skill-select" class="form-label">Activity</label>
           <select id="skill-select" class="form-select">
               <!-- Options will go here -->
           </select>
       </div>
+
+      <hr class="my-4">
   
       <!-- Player Stats Table -->
       <table class="table table-striped">

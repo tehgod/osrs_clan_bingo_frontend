@@ -7,7 +7,7 @@ async function populateDropdown() {
         option.textContent = activity["Activity"];
         document.getElementById('skill-select').appendChild(option);
     }
-    document.getElementById('skill-select').onchange = updateTable;
+    document.getElementById('skill-select').onchange = populateHighscoreData;
     document.getElementById('skill-select').selectedIndex =0;
 }
 
@@ -17,17 +17,31 @@ async function updateUserStats(username) {
     return data;
 }
 
-async function bindOnClick() {
+async function setCurrentValues() {
+    const selectedActivity = document.getElementById('skill-select').value;
+    const response = await fetch(`/api/setCurrentValues?activity=${selectedActivity}`);
+    const data = await response.json();
+    return data;
+}
+
+
+async function bindOnClicks() {
     document.getElementById('update-button').onclick = async () => {
         document.getElementById('update-button').classList.add('disabled');
         var teamUsernames = await getTeamUsernames();
         for (var i = 0; i < teamUsernames.length; i++) {
             await updateUserStats(teamUsernames[i]);
         }
-        populateDropdown();
-        populateHighscoreData();
+        await populateDropdown();
+        await populateHighscoreData();
         document.getElementById('update-button').classList.remove('disabled');
+        document.getElementById('set-button').classList.remove('disabled');
     };
+    document.getElementById('set-button').onclick = async () => {
+        await setCurrentValues();
+        await populateHighscoreData();
+        document.getElementById('set-button').classList.add('disabled');
+    }
 }
 
 async function getTeamUsernames() {
@@ -65,14 +79,23 @@ async function populateHighscoreData() {
 
     var teamStats = await getTeamStats(selectedActivity);
 
+    xpHeader = "Starting Score/XP (Not Set)";
+    for (stat in teamStats) {
+        if (teamStats[stat]["Pinned"] != null) {
+            xpHeader = "Starting Score/XP";
+            break;
+        }
+    }
+
     // Create the table header with Bootstrap styling
     const tableHeader = document.getElementById('table-header');
     tableHeader.innerHTML = `
         <th>Username</th>
-        <th>Current XP</th>
-        <th>Pinned XP</th>
+        <th>Current Score/XP</th>
+        <th>${xpHeader}</th>
         <th>Difference</th>
     `;
+    var totalDifference = 0;
 
     for (var username in teamStats) {
         let currentXp = teamStats[username]["Current"];
@@ -97,21 +120,22 @@ async function populateHighscoreData() {
             <td>${currentXp - pinnedXp}</td>
         `;
         
+        totalDifference += (currentXp - pinnedXp);
         // Append the row to the table body
         tableBody.appendChild(row);
     }
+    const row = document.createElement('tr');
+    row.classList.add('table-row');
+    row.innerHTML = `
+        <td class="right" colspan="3">Total:</td><td class="right">${totalDifference}</td>
+    `;
+    tableBody.appendChild(row);
 }
-
-
-async function updateTable() {
-    await populateHighscoreData();
-}
-
 
 (async () => {
 
     await populateDropdown();
     populateHighscoreData();
-    bindOnClick();
+    bindOnClicks();
     
 })(); 
