@@ -389,11 +389,64 @@ app.get('/api/getTeamMembers', async (req, res) => {
     }
 });
 
-app.get('/api/getPlayerStats', async (req, res) => {
-    var username = req.query.username;
-    const response = await fetch(`https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${username}`);
-    const data = await response.json();
-    res.json(data);
+app.get('/api/getActivities', async (req, res) => {
+    const sql = 'SELECT DISTINCT Activity from HighscoreData';
+    try {
+        const results = await queryDatabase(sql)
+        res.json(results);
+    } catch (error) {
+        console.error('Database query error:', error);
+        throw error;
+    }
+});
+
+app.get('/api/updatePlayerStats', async (req, res) => {
+    const username = req.query.username;
+    let data;
+    
+    try {
+        const response = await fetch(`https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${username}`);
+        data = await response.json(); 
+    } catch (error) {
+        console.error('Error fetching player stats:', error);
+        return res.status(500).json({ error: 'Error fetching player stats' });
+    }
+    
+    var sql = 'INSERT INTO HighscoreData (Username, Activity, Score, RecordType) VALUES ?';
+    let values = [];
+
+    for (const skill in data.skills) {
+        const xp = data.skills[skill].xp === -1 ? null : data.skills[skill].xp;
+        values.push([username, data.skills[skill].name, xp, "Current"]);
+    }
+
+    if (data.activities) {
+        for (const activity in data.activities) {
+            const score = data.activities[activity].score === -1 ? null : data.activities[activity].score;
+            values.push([username, data.activities[activity].name, score, "Current"]);
+        }
+    }
+
+    try {
+        await queryDatabase('DELETE FROM HighscoreData WHERE Username = ? AND RecordType = "Current"', [username]);
+        await poolPromise.query(sql, [values])
+    } catch (error) {
+        console.error('Database query error:', error);
+        return res.status(500).json({ error: 'Database query failed' });
+    }
+
+    res.json({ message: 'Player stats updated successfully', data: values });
+});
+
+app.get('/api/getTeamActivityStats', async (req, res) => {
+    const sql = 'SELECT hd.Username, hd.Score, hd.RecordType from HighscoreData hd inner join TeamMembers tm on hd.Username = tm.Username where tm.Team = ? and hd.Activity = ?';
+    try {
+        const results = await queryDatabase(sql, [req.session.teamId, req.query.activity]);
+        res.json(results);
+    } catch (error) {
+        console.error('Database query error:', error);
+        throw error;
+    }
 });
 
 app.listen(port, () => {
