@@ -25,7 +25,7 @@ async function setCurrentValues() {
 }
 
 
-async function bindOnClicks() {
+async function bindOnClicks(approverStatus) {
     document.getElementById('update-button').onclick = async () => {
         document.getElementById('update-button').classList.add('disabled');
         var teamUsernames = await getTeamUsernames();
@@ -35,8 +35,13 @@ async function bindOnClicks() {
         await populateDropdown();
         await populateHighscoreData();
         document.getElementById('update-button').classList.remove('disabled');
-        document.getElementById('set-button').classList.remove('disabled');
+        document.getElementById('set-button').classList.add('disabled');
+        if (approverStatus==1){
+            document.getElementById('set-button').classList.remove('disabled');
+        }
+        
     };
+
     document.getElementById('set-button').onclick = async () => {
         await setCurrentValues();
         await populateHighscoreData();
@@ -149,6 +154,6 @@ function applyUserChanges(approverStatus) {
     userInfo = await loadUserInfo()
     await populateDropdown();
     populateHighscoreData();
-    bindOnClicks();
+    bindOnClicks(userInfo.Approver);
     applyUserChanges(userInfo.Approver)
 })(); 
