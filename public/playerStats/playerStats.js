@@ -132,10 +132,23 @@ async function populateHighscoreData() {
     tableBody.appendChild(row);
 }
 
-(async () => {
+async function loadUserInfo() {
+    var userInfo = await fetch(`/api/userInfo`)
+        .then(response => response.json());
 
+    return userInfo[0]
+}
+
+function applyUserChanges(approverStatus) {
+    if (approverStatus!=1){
+        document.getElementById("set-button").remove();
+    }
+}
+
+(async () => {
+    userInfo = await loadUserInfo()
     await populateDropdown();
     populateHighscoreData();
     bindOnClicks();
-    
+    applyUserChanges(userInfo.Approver)
 })(); 
