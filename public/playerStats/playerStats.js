@@ -147,13 +147,15 @@ async function loadUserInfo() {
 function applyUserChanges(approverStatus) {
     if (approverStatus!=1){
         document.getElementById("set-button").remove();
+    }   else {
+        document.getElementById("set-button").classList.remove('disabled');
     }
 }
 
 (async () => {
     userInfo = await loadUserInfo()
+    applyUserChanges(userInfo.Approver);
     await populateDropdown();
     populateHighscoreData();
     bindOnClicks(userInfo.Approver);
-    applyUserChanges(userInfo.Approver)
 })(); 
