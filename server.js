@@ -162,7 +162,7 @@ app.get('/board', function(req, res) {
 		// Output username
         res.sendFile(path.join(path.join(__dirname, 'public', 'board', 'board.html')));
 	} else {
-        redirectToLogin(res);
+        redirectToLogin(res); 
 	}
 	// Render login template
 	// 
@@ -379,6 +379,12 @@ app.get('/api/userInfo', async (req, res) => {
 app.get('/api/getTeamMembers', async (req, res) => {
     const sql = 'SELECT tm.Username from TeamMembers tm WHERE tm.Team = ?';
     const values = [req.session.teamId]
+    if (typeof req.session.teamId == 'undefined' || req.session.teamId == null){
+        redirectToLogin(res);
+    }
+    if (!req.session.teamId) {
+        redirectToLogin(res);
+    }
     try {
         var usernames = []
         const results = await queryDatabase(sql, values)
