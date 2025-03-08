@@ -92,11 +92,14 @@ async function queryDatabase(sql, params) {
         const [rows, fields] = await poolPromise.execute(sql, params);
         return rows;
     } catch (error) {
-        console.error('Database query error:', error);
+        console.error('Database query error:');
+        console.error('SQL Query:', sql);
+        console.error('Parameters:', params);
+        console.error('Error Message:', error.message);
+        console.error('Stack Trace:', error.stack);
         throw error;
     }
 }
-
 
 db.connect((err) => {
     if (err) throw err;
