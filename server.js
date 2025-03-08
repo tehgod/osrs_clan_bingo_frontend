@@ -52,6 +52,7 @@ function redirectToLogin(res) {
             window.location.href = '/'; // Redirect to login page
         </script>
     `);
+    res.end();
 }
 
 async function sendDiscordUpdate(webhookUrl, payload){
@@ -379,22 +380,24 @@ app.get('/api/userInfo', async (req, res) => {
 app.get('/api/getTeamMembers', async (req, res) => {
     const sql = 'SELECT tm.Username from TeamMembers tm WHERE tm.Team = ?';
     const values = [req.session.teamId]
+
     if (typeof req.session.teamId == 'undefined' || req.session.teamId == null){
-        redirectToLogin(res);
-    }
-    if (!req.session.teamId) {
-        redirectToLogin(res);
-    }
-    try {
+        
         var usernames = []
-        const results = await queryDatabase(sql, values)
-        for (item in results) {
-            usernames.push(results[item].Username)
-        };
         res.json(usernames);
-    } catch (error) {
-        console.error('Database query error:', error);
-        throw error;
+    }
+    else {
+        try {
+            var usernames = []
+            const results = await queryDatabase(sql, values)
+            for (item in results) {
+                usernames.push(results[item].Username)
+            };
+            res.json(usernames);
+        } catch (error) {
+            console.error('Database query error:', error);
+            throw error;
+        }
     }
 });
 
@@ -471,6 +474,9 @@ app.get('/api/setCurrentValues', async (req, res) => {
           AND target.Activity = hd.Activity
           AND target.RecordType = "Pinned"
     );`;
+    if (typeof req.session.teamId == 'undefined' || req.session.teamId == null){
+        return res.json({ message: 'Error' });
+    }
     try {
         await queryDatabase(sql, [req.session.teamId, req.query.activity]);
         res.json({ message: 'Current values set successfully' });

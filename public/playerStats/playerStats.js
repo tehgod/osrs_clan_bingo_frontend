@@ -29,6 +29,11 @@ async function bindOnClicks(approverStatus) {
     document.getElementById('update-button').onclick = async () => {
         document.getElementById('update-button').classList.add('disabled');
         var teamUsernames = await getTeamUsernames();
+        if (teamUsernames.length == 0) {
+            alert("Please login to continue");
+            window.location.href = '/';
+            return;
+        }
         for (var i = 0; i < teamUsernames.length; i++) {
             await updateUserStats(teamUsernames[i]);
         }
@@ -43,7 +48,12 @@ async function bindOnClicks(approverStatus) {
     };
 
     document.getElementById('set-button').onclick = async () => {
-        await setCurrentValues();
+        var r = await setCurrentValues();
+        if (r["message"]== "Error") {
+            alert("Please login to continue");
+            window.location.href = '/';
+            return;
+        }
         await populateHighscoreData();
         document.getElementById('set-button').classList.add('disabled');
     }
