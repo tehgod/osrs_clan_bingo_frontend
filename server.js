@@ -23,6 +23,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static((path.join(__dirname, 'public')))); // Serve static files from 'public' directory
 
+function checkSession(req, res, next) {
+    if (req.session.loggedin) {
+        return next();
+    } else {
+        return res.send(`
+            <script>
+                alert('Please login to continue');
+                window.location.href = '/';
+            </script>
+        `);
+    }
+}
+
 function getAdjacentCells(cell) {
     var regex = /^([a-zA-Z]+)(\d+)$/;
     var match = cell.match(regex);
@@ -158,7 +171,7 @@ app.get('/logout', function(req, res) {
       })
 });
 
-app.get('/board', function(req, res) {
+app.get('/board', checkSession, function(req, res) {
     if (req.session.loggedin && req.session.username) {
 		// Output username
         res.sendFile(path.join(path.join(__dirname, 'public', 'board', 'board.html')));
@@ -169,7 +182,7 @@ app.get('/board', function(req, res) {
 	// 
 });
 
-app.get('/players', function(req, res) {
+app.get('/players', checkSession, function(req, res) {
     if (req.session.loggedin && req.session.username) {
         res.sendFile(path.join(__dirname, 'public', 'playerStats', 'playerStats.html'));
     }
@@ -179,7 +192,7 @@ app.get('/players', function(req, res) {
 });
 
 // API endpoint to fetch data
-app.post('/api/update-tile', async (req, res) => {
+app.post('/api/update-tile', checkSession, async (req, res) => {
     var tile = req.body.selectedTile;
     var teamId = req.session.teamId;
     if ((!teamId) || (tile == "")) {
@@ -296,7 +309,7 @@ app.post('/api/update-tile', async (req, res) => {
     res.redirect('/board');
 });
 
-app.get('/api/getTemplateNumber', async (req, res) => {
+app.get('/api/getTemplateNumber', checkSession, async (req, res) => {
     var teamId = req.session.teamId;
     const sql = 'SELECT DISTINCT Template from CurrentLayouts cl where Team = ?';
     const values = [teamId]
@@ -309,7 +322,7 @@ app.get('/api/getTemplateNumber', async (req, res) => {
     }
 });
 
-app.get('/api/getTemplate', async (req, res) => {
+app.get('/api/getTemplate', checkSession, async (req, res) => {
     var templateId = req.query.templateId;
     const sql = 'SELECT bt.Cell, LOWER(ld.Name) AS Difficulty from BoardTemplate bt INNER JOIN LookupDifficulty ld on bt.Difficulty = ld.Id WHERE Template=?';
     const values = [templateId]
@@ -322,7 +335,7 @@ app.get('/api/getTemplate', async (req, res) => {
     }
 });
 
-app.get('/api/getRules', async (req, res) =>{
+app.get('/api/getRules', checkSession, async (req, res) =>{
     var teamId = req.session.teamId;
     const sql = 'SELECT cl.Cell, tr.Rule FROM CurrentLayouts cl INNER JOIN TasksRules tr ON cl.TaskId = tr.TasksId WHERE Team = ? AND Status!=0';
     const values = [teamId]
@@ -335,7 +348,7 @@ app.get('/api/getRules', async (req, res) =>{
     }
 })
 
-app.get('/api/getCompleted', async (req, res) => {
+app.get('/api/getCompleted', checkSession, async (req, res) => {
     var teamId = req.session.teamId;
     const sql = 'SELECT cl.Cell, cl.Status, t.Task  from CurrentLayouts cl inner join Tasks t on cl.TaskId =t.Id where (Status >0 or t.Difficulty =0) and Team = ?';
     const values = [teamId]
@@ -348,7 +361,7 @@ app.get('/api/getCompleted', async (req, res) => {
     }
 });
 
-app.get('/api/getUrls', async (req, res) => {
+app.get('/api/getUrls', checkSession, async (req, res) => {
     var teamId = req.session.teamId;
     const sql = 'SELECT clu.Cell, clu.Url from CurrentLayoutUrls clu WHERE Team = ?';
     const values = [teamId]
@@ -361,7 +374,7 @@ app.get('/api/getUrls', async (req, res) => {
     }
 });
 
-app.get('/api/userInfo', async (req, res) => {
+app.get('/api/userInfo', checkSession, async (req, res) => {
     username = req.session.username;
     const sql = 'SELECT la.Team, la.Approver, la.DiscordWebhook from LoginAccounts la WHERE username = ?';
     const values = [username]
@@ -377,7 +390,7 @@ app.get('/api/userInfo', async (req, res) => {
     }
 });
 
-app.get('/api/getTeamMembers', async (req, res) => {
+app.get('/api/getTeamMembers', checkSession, async (req, res) => {
     const sql = 'SELECT tm.Username from TeamMembers tm WHERE tm.Team = ?';
     const values = [req.session.teamId]
 
@@ -401,7 +414,7 @@ app.get('/api/getTeamMembers', async (req, res) => {
     }
 });
 
-app.get('/api/getActivities', async (req, res) => {
+app.get('/api/getActivities', checkSession, async (req, res) => {
     const sql = 'SELECT DISTINCT Activity from HighscoreData';
     try {
         const results = await queryDatabase(sql)
@@ -412,7 +425,7 @@ app.get('/api/getActivities', async (req, res) => {
     }
 });
 
-app.get('/api/updatePlayerStats', async (req, res) => {
+app.get('/api/updatePlayerStats', checkSession, async (req, res) => {
     const username = req.query.username;
     let data;
     
@@ -450,7 +463,7 @@ app.get('/api/updatePlayerStats', async (req, res) => {
     res.json({ message: 'Player stats updated successfully', data: values });
 });
 
-app.get('/api/getTeamActivityStats', async (req, res) => {
+app.get('/api/getTeamActivityStats', checkSession, async (req, res) => {
     const sql = 'SELECT hd.Username, hd.Score, hd.RecordType from HighscoreData hd inner join TeamMembers tm on hd.Username = tm.Username where tm.Team = ? and hd.Activity = ?';
     try {
         const results = await queryDatabase(sql, [req.session.teamId, req.query.activity]);
@@ -461,7 +474,7 @@ app.get('/api/getTeamActivityStats', async (req, res) => {
     }
 });
 
-app.get('/api/setCurrentValues', async (req, res) => {
+app.get('/api/setCurrentValues', checkSession, async (req, res) => {
     const sql = `INSERT INTO HighscoreData (Username, Activity, Score, RecordType)
     SELECT hd.Username, hd.Activity, hd.Score, "Pinned" as RecordType
     FROM HighscoreData hd
