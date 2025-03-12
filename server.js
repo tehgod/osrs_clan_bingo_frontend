@@ -68,16 +68,46 @@ function redirectToLogin(res) {
     res.end();
 }
 
-async function sendDiscordUpdate(webhookUrl, payload){
-    
-    await fetch(webhookUrl, {
-            method: "POST",
-            headers: {
-                'Content-type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-    })
-    
+async function sendDiscordUpdate(webhookUrl, payload) {
+
+    const maxFieldsPerMessage = 15;
+
+    const allFields = payload.embeds[0].fields;
+
+    const chunks = [];
+    for (let i = 0; i < allFields.length; i += maxFieldsPerMessage) {
+        chunks.push(allFields.slice(i, i + maxFieldsPerMessage));
+    }
+
+    for (const chunk of chunks) {
+
+        const chunkPayload = {
+            ...payload,
+            embeds: [
+                {
+                    ...payload.embeds[0],
+                    fields: chunk
+                }
+            ]
+        };
+
+        try {
+            const response = await fetch(webhookUrl, {
+                method: "POST",
+                headers: {
+                    'Content-type': 'application/json'
+                },
+                body: JSON.stringify(chunkPayload)
+            });
+
+            if (!response.ok) {
+                console.error('Error sending Discord update:', response.statusText);
+            }
+
+        } catch (error) {
+            console.error('Error sending Discord update:', error);
+        }
+    }
 }
 
 const db = mysql.createConnection({
