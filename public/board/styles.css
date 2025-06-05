@@ -3,6 +3,7 @@ body {
     margin: 100px;
     background-color: #000;
 }
+
 header { 
     margin: 0px;
     --bs-gutter-x: 0;
@@ -41,7 +42,6 @@ i {
     cursor:pointer;
     color: #fe2b2b;
 }
-
 
 #scoreboard td, #scoreboard th {
     border: 1.2px solid #000;
@@ -99,3 +99,46 @@ i {
     background-color: #0de63f; /* Neon Green */
 }
 
+/* Mobile styles for screens with width 500px or less */
+@media (max-width: 800px) {
+    body {
+        margin: 20px; /* Reduced margin for smaller screens */
+    }
+
+    .col-2{
+        width: auto;
+    }
+
+    #rulesList {
+        column-count: 1; /* Switch to 1 column on mobile */
+        column-gap: 0.5rem; /* Adjust space between columns */
+        font-size: 12px;
+    }
+
+    form {
+        width: auto; /* Make form take full width */
+        font-size: 14px; /* Adjust font size for smaller screens */
+    }
+
+    #bingo-board td {
+        height: 100px; /* Reduce height of bingo tiles */
+        width: 100px; /* Reduce width of bingo tiles */
+        font-size: 14px; /* Smaller font size for better fit */
+    }
+
+    #teamHeader {
+        font-size: 16px; /* Reduce header size on small screens */
+    }
+
+    i {
+        font-size: 16px; /* Adjust icon size */
+    }
+
+    #scoreboard td, #scoreboard th {
+        font-size: 16px; /* Adjust font size for smaller screens */
+    }
+
+    table {
+        width: 100%; /* Ensure table takes full width */
+    }
+}
