@@ -66,7 +66,6 @@ i {
 }
 
 /* Difficulty color styles */
-
 .start {
     background-color: #0de63f; /* Neon Green */
 }
@@ -99,14 +98,20 @@ i {
     background-color: #0de63f; /* Neon Green */
 }
 
-/* Mobile styles for screens with width 500px or less */
+/* Mobile styles for screens with width 800px or less */
 @media (max-width: 800px) {
     body {
         margin: 20px; /* Reduced margin for smaller screens */
     }
 
-    .col-2{
-        width: auto;
+    .col-2 {
+        width: 100%; /* Make col-2 take full width on small screens */
+    }
+
+    #selectedTileTask {
+        min-height: 0; /* Remove fixed min-height */
+        height: auto; /* Let the height adjust based on content */
+        word-wrap: break-word; /* Ensure text wraps within the div */
     }
 
     #rulesList {
@@ -116,7 +121,7 @@ i {
     }
 
     form {
-        width: auto; /* Make form take full width */
+        width: 100%; /* Make form take full width */
         font-size: 14px; /* Adjust font size for smaller screens */
     }
 
@@ -141,4 +146,22 @@ i {
     table {
         width: 100%; /* Ensure table takes full width */
     }
+
+    .col-2 {
+        width: 100%;
+        padding: 0 10px; /* optional: adds some padding to avoid touching edges */
+    }
+
+    /* Ensure that the row layout is flexible and allows wrapping on smaller screens */
+    .row {
+        display: flex;
+        flex-wrap: wrap; /* Allow the columns to wrap */
+        gap: 10px; /* Add some space between columns */
+    }
+
+    #selectedTile {
+        padding: 0; /* Remove padding for smaller screens */
+        width: 20px;
+    }
+
 }
