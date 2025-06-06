@@ -463,7 +463,7 @@ app.get('/api/updatePlayerStats', checkSession, async (req, res) => {
         const response = await fetch(`https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${username}`);
         data = await response.json(); 
     } catch (error) {
-        console.error('Error fetching player stats:', error);
+        console.error(`Error fetching player stats:${req.query.username}`, error);
         return res.status(500).json({ error: 'Error fetching player stats' });
     }
     
