@@ -142,7 +142,7 @@ async function populateHighscoreData() {
     const row = document.createElement('tr');
     row.classList.add('table-row');
     row.innerHTML = `
-        <td class="right" colspan="3">Total:</td><td class="right">${totalDifference}</td>
+        <td class="right" colspan="3">Total:</td><td class="right">${totalDifference.toLocaleString()}</td>
     `;
     tableBody.appendChild(row);
 }
