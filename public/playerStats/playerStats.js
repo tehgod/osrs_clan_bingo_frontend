@@ -130,9 +130,9 @@ async function populateHighscoreData() {
         // Fill in the row's cells with data
         row.innerHTML = `
             <td>${username}</td>
-            <td>${currentXp}</td>
-            <td>${pinnedXp}</td>
-            <td>${currentXp - pinnedXp}</td>
+            <td>${currentXp.toLocaleString()}</td>
+            <td>${pinnedXp.toLocaleString()}</td>
+            <td>${(currentXp - pinnedXp).toLocaleString()}</td>
         `;
         
         totalDifference += (currentXp - pinnedXp);
