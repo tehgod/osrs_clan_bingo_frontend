@@ -110,31 +110,18 @@ async function sendDiscordUpdate(webhookUrl, payload) {
     }
 }
 
-function fixcdn (urlString) {
+const fixcdn = (urlString) => {
     const url = new URL(urlString);  // Create URL object from the string
 
     const exStr = url.searchParams.get('ex');
     const exTime = parseInt(exStr, 16) * 1000;
 
-    // If the expiration time is invalid or expired, redirect to CDN
+    // If expiration time is invalid or expired, return the CDN URL
     if (isNaN(exTime) || exTime <= Date.now()) {
         return 'https://fixcdn.hyonsu.com' + url.pathname;
     }
 
-    // If the response code is 404, redirect to CDN
-    const navigationData = performance.getEntriesByType('navigation')[0];
-    const responseCode = navigationData ? navigationData.responseStatus : null;
-
-    if (responseCode === 404) {
-        return 'https://fixcdn.hyonsu.com' + url.pathname;
-    }
-
-    // If the page content is unavailable, redirect to CDN
-    if (document.body.innerText.trim() === 'This content is no longer available.') {
-        return 'https://fixcdn.hyonsu.com' + url.pathname;
-    }
-
-    // If everything is fine, return the original URL
+    // If no issues, return the original URL
     return url.href;
 };
 
