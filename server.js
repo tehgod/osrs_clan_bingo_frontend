@@ -1,5 +1,5 @@
 const express = require('express');
-const mysql = require('mysql2');
+const sql = require('mssql');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
@@ -125,44 +125,31 @@ const fixcdn = (urlString) => {
     return url.href;
 };
 
-const db = mysql.createConnection({
-    host: process.env.MYSQL_HOST,
-    port: 3306,
-    user: process.env.MYSQL_USERNAME,
-    password: process.env.MYSQL_PASSWORD,
-    database: 'RunescapeBingo'
-});
-
-const pool = mysql.createPool({
-    host: process.env.MYSQL_HOST,
-    port: 3306,
-    user: process.env.MYSQL_USERNAME,    // Database username
-    password: process.env.MYSQL_PASSWORD,// Database password
-    database: 'RunescapeBingo',// Database name
-    waitForConnections: true, // Whether to wait for a free connection
-    connectionLimit: 10,      // Maximum number of connections in the pool
-    queueLimit: 0             // Maximum number of connection requests in queue
-});
-
-const poolPromise = pool.promise();
-
-async function queryDatabase(sql, params) {
-    try {
-        const [rows, fields] = await poolPromise.execute(sql, params);
-        return rows;
-    } catch (error) {
-        console.error('Database query error:');
-        console.error('SQL Query:', sql);
-        console.error('Parameters:', params);
-        console.error('Error Message:', error.message);
-        console.error('Stack Trace:', error.stack);
-        throw error;
+const config = {
+    server: process.env.MSSQL_HOST,
+    port: parseInt(process.env.MSSQL_PORT) || 1433,
+    user: process.env.MSSQL_USERNAME,
+    password: process.env.MSSQL_PASSWORD,
+    database: 'Runescape',
+    options: {
+        encrypt: true, // Use encryption
+        trustServerCertificate: true, // For development; set to false in production with proper cert
+        enableArithAbort: true
+    },
+    pool: {
+        max: 10,
+        min: 0,
+        idleTimeoutMillis: 30000
     }
-}
+};
 
-db.connect((err) => {
-    if (err) throw err;
-    console.log('Connected to MySQL Database!');
+const pool = new sql.ConnectionPool(config);
+const poolConnect = pool.connect();
+
+await poolConnect.then(() => {
+    console.log('Connected to MSSQL Database!');
+}).catch(err => {
+    console.error('Database connection failed:', err);
 });
 
 app.get('/', function(req, res) {
@@ -182,31 +169,32 @@ app.post('/auth', async function(req, res) {
 	if (username && password) {
 		// Execute SQL query that'll select the account from the database based on the specified username and password
         try {
-            const results = await queryDatabase(
-                'SELECT * FROM LoginAccounts WHERE username = ? AND password = ?',
-                [username, password]
-            );
-            if (results.length > 0) {
-                // Authenticate the user
-                req.session.loggedin = true;
-                req.session.username = username;
-                // Redirect to board page
-                res.redirect('/board');
-            } else {
-                res.send(`
-                    <script>
-                        alert('Username and password are incorrect!');
-                        window.location.href = '/'; // Redirect to login page
-                    </script>
-                `);
-            }
+            const results = await pool.request()
+                .input('username', sql.VarChar, username)
+                .input('password', sql.VarChar, password)
+                .query(`SELECT * FROM LoginAccounts WHERE username = @username AND password = @password`);
         } catch (error) {
-            res.status(500).json({ message: 'Database error', error: error.message });
+            return res.status(500).json({ message: 'Database error', error: error.message });
         }
-    
+
+        if (results.recordset.length > 0) {
+            // Authenticate the user
+            req.session.loggedin = true;
+            req.session.username = username;
+            // Redirect to board page
+            res.redirect('/board');
+        } else {
+            res.send(`
+                <script>
+                    alert('Username and password are incorrect!');
+                    window.location.href = '/'; // Redirect to login page
+                </script>
+            `);
+        }
+
     } else {
-        response.send('Please enter Username and Password!');
-        response.end();
+        res.send('Please enter Username and Password!');
+        res.end();
     }
 });
 
@@ -253,21 +241,25 @@ app.post('/api/update-tile', checkSession, async (req, res) => {
         (req.body.selectedTileCompleted === 'on') 
         && (req.session.approver==1))
     // const imageUrls = Array.isArray(req.body.imageUrl) ? req.body.imageUrl : [req.body.imageUrl];
-    var sql = `DELETE FROM CurrentLayoutUrls WHERE Team = ? AND Cell = ?`;
-    var values = [teamId, tile];
     try {
-        await queryDatabase(sql, values)
+        await pool.request()
+        .input('teamId', sql.Int, teamId)
+        .input('tile', sql.VarChar, tile)
+        .query(`DELETE FROM CurrentLayoutUrls WHERE Team = @teamId AND Cell = @tile`);
     } catch (error) {
         console.error('Database query error:', error);
         throw error;
-    } 
+    }
 
     for (const imageUrl of imageUrls) {
         newUrl = fixcdn(imageUrl);
-        var sql = `INSERT INTO CurrentLayoutUrls(Team, Cell, Url) VALUES (?, ?, ?)`;
-        var values = [teamId, tile, newUrl];
+
         try {
-            await queryDatabase(sql, values)
+            await pool.request()
+            .input('teamId', sql.Int, teamId)
+            .input('tile', sql.VarChar, tile)
+            .input('newUrl', sql.VarChar, newUrl)
+            .query(`INSERT INTO CurrentLayoutUrls(Team, Cell, Url) VALUES (@teamId, @tile, @newUrl)`);
         } catch (error) {
             console.error('Database query error:', error);
             throw error;
@@ -275,44 +267,52 @@ app.post('/api/update-tile', checkSession, async (req, res) => {
     }
 
     if (completionStatus) {
-        var sql = `UPDATE CurrentLayouts SET Status = 1 WHERE Cell = ? and Team =?`;
-        var values = [tile, teamId];
+
         try {
-            await queryDatabase(sql, values)
-        } catch (error) {
+            await pool.request()
+            .input('teamId', sql.Int, teamId)
+            .input('tile', sql.VarChar, tile)
+            .query(`SELECT Status FROM CurrentLayouts WHERE Team = @teamId AND Cell = @tile`);
+        }
+        catch (error) {
             console.error('Database query error:', error);
             throw error;
-        } 
-    
+        }
+
         var inProgressTiles = getAdjacentCells(tile)
         
         for (const inProgressTile of inProgressTiles) {
-            var sql = `UPDATE CurrentLayouts SET Status = 2 WHERE Status = 0 AND Cell = ? AND Team = ?`;
-            var values = [inProgressTile, teamId];
+
             try {
-                await queryDatabase(sql, values);
-            } catch (error) {
+                await pool.request()
+                .input('teamId', sql.Int, teamId)
+                .input('inProgressTile', sql.VarChar, inProgressTile)
+                .query(`UPDATE CurrentLayouts SET Status = 2 WHERE Status = 0 AND Cell = @inProgressTile AND Team = @teamId`);
+            }
+            catch (error) {
                 console.error('Database query error:', error);
                 throw error;
-            } 
+            }
         }
 
-        var sql = `SELECT cl.Cell, cl.Status, t.Task  from CurrentLayouts cl inner join Tasks t on cl.TaskId =t.Id where Status = 2 AND Team = ?`;
-        var values = [teamId];
         try {
-            var inProgressDiscordTiles = await queryDatabase(sql, values);
-        } catch (error) {
-            console.error('Database query error:', error);
-            // Handle error appropriately, e.g., return a response or throw
+            var inProgressDiscordTiles = await pool.request()
+            .input('teamId', sql.Int, teamId)
+            .query(`SELECT cl.Cell, cl.Status, t.Task  from CurrentLayouts cl inner join Tasks t on cl.TaskId =t.Id where Status = 2 AND Team = @teamId`);
         }
-    
-        var sql = 'SELECT cl.Cell, tr.Rule FROM CurrentLayouts cl INNER JOIN TasksRules tr ON cl.TaskId = tr.TasksId WHERE Team = ? AND Status!=0';
-        var values = [teamId]
-        try {
-            var inProgressTilesRules = await queryDatabase(sql, values);
-        } catch (error) {
+        catch (error) {
             console.error('Database query error:', error);
-            // Handle error appropriately, e.g., return a response or throw
+            throw error;
+        }
+
+        try {
+            var inProgressTilesRules = await pool.request()
+            .input('teamId', sql.Int, teamId)
+            .query(`SELECT cl.Cell, tr.Rule FROM CurrentLayouts cl INNER JOIN TasksRules tr ON cl.TaskId = tr.TasksId WHERE Team = @teamId AND Status!=0`);
+        }
+        catch (error) {
+            console.error('Database query error:', error);
+            throw error;
         }
 
         const fields = inProgressDiscordTiles.map(tile => {
@@ -351,85 +351,89 @@ app.post('/api/update-tile', checkSession, async (req, res) => {
         await sendDiscordUpdate(req.session.discordUrl, params)
     }
 
-
     res.redirect('/board');
 });
 
 app.get('/api/getTemplateNumber', checkSession, async (req, res) => {
-    var teamId = req.session.teamId;
-    const sql = 'SELECT DISTINCT Template from CurrentLayouts cl where Team = ?';
-    const values = [teamId]
+
     try {
-        const results = await queryDatabase(sql, values)
-        res.json(results);
+        const results = await pool.request()
+            .input('teamId', sql.Int, req.session.teamId)
+            .query(`SELECT DISTINCT Template from CurrentLayouts cl where Team = @teamId`);
+        res.json(results.recordset);
     } catch (error) {
         console.error('Database query error:', error);
         throw error;
     }
 });
 
+
 app.get('/api/getTemplate', checkSession, async (req, res) => {
-    var templateId = req.query.templateId;
-    const sql = 'SELECT bt.Cell, LOWER(ld.Name) AS Difficulty from BoardTemplate bt INNER JOIN LookupDifficulty ld on bt.Difficulty = ld.Id WHERE Template=?';
-    const values = [templateId]
+
     try {
-        const results = await queryDatabase(sql, values)
-        res.json(results);
-    } catch (error) {
+        const results = await pool.request()
+            .input('templateId', sql.Int, req.query.templateId)
+            .query(`SELECT bt.Cell, LOWER(ld.Name) AS Difficulty from BoardTemplate bt INNER JOIN LookupDifficulty ld on bt.Difficulty = ld.Id WHERE Template= @templateId`);
+        res.json(results.recordset);
+    }
+    catch (error) {
         console.error('Database query error:', error);
         throw error;
     }
 });
 
 app.get('/api/getRules', checkSession, async (req, res) =>{
-    var teamId = req.session.teamId;
-    const sql = 'SELECT cl.Cell, tr.Rule FROM CurrentLayouts cl INNER JOIN TasksRules tr ON cl.TaskId = tr.TasksId WHERE Team = ? AND Status!=0';
-    const values = [teamId]
+
     try {
-        const results = await queryDatabase(sql, values)
-        res.json(results);
-    } catch (error) {
+        const results = await pool.request()
+        .input('teamId', sql.Int, req.session.teamId)
+        .query(`SELECT cl.Cell, tr.Rule FROM CurrentLayouts cl INNER JOIN TasksRules tr ON cl.TaskId = tr.TasksId WHERE Team = @teamId AND Status!=0`);
+        res.json(results.recordset);
+    }
+    catch (error) {
         console.error('Database query error:', error);
         throw error;
     }
 })
 
 app.get('/api/getCompleted', checkSession, async (req, res) => {
-    var teamId = req.session.teamId;
-    const sql = 'SELECT cl.Cell, cl.Status, t.Task  from CurrentLayouts cl inner join Tasks t on cl.TaskId =t.Id where (Status >0 or t.Difficulty =0) and Team = ?';
-    const values = [teamId]
+
     try {
-        const results = await queryDatabase(sql, values)
-        res.json(results);
-    } catch (error) {
+        const results = await pool.request()
+            .input('teamId', sql.Int, req.session.teamId)
+            .query(`SELECT cl.Cell, cl.Status, t.Task  from CurrentLayouts cl inner join Tasks t on cl.TaskId =t.Id where (Status >0 or t.Difficulty =0) and Team = @teamId`);
+        res.json(results.recordset);
+    }
+    catch (error) {
         console.error('Database query error:', error);
         throw error;
     }
 });
 
 app.get('/api/getUrls', checkSession, async (req, res) => {
-    var teamId = req.session.teamId;
-    const sql = 'SELECT clu.Cell, clu.Url from CurrentLayoutUrls clu WHERE Team = ?';
-    const values = [teamId]
+
     try {
-        const results = await queryDatabase(sql, values)
-        res.json(results);
-    } catch (error) {
+        const results = await pool.request()
+            .input('teamId', sql.Int, req.session.teamId)
+            .query(`SELECT clu.Cell, clu.Url from CurrentLayoutUrls clu WHERE Team = @teamId`);
+        res.json(results.recordset);
+    }
+    catch (error) {
         console.error('Database query error:', error);
         throw error;
     }
 });
 
 app.get('/api/userInfo', checkSession, async (req, res) => {
-    username = req.session.username;
-    const sql = 'SELECT la.Team, la.Approver, la.DiscordWebhook from LoginAccounts la WHERE username = ?';
-    const values = [username]
+
     try {
-        const results = await queryDatabase(sql, values)
-        req.session.approver = results[0].Approver;
-        req.session.discordUrl = results[0].DiscordWebhook;
-        req.session.teamId = results[0].Team;
-        res.json(results);
+        const results = await pool.request()
+            .input('username', sql.VarChar, req.session.username)
+            .query(`SELECT la.Team, la.Approver, la.DiscordWebhook from LoginAccounts la WHERE username = @username`);
+        req.session.approver = results.recordset[0].Approver;
+        req.session.discordUrl = results.recordset[0].DiscordWebhook;
+        req.session.teamId = results.recordset[0].Team;
+        res.json(results.recordset);
     } catch (error) {
         console.error('Database query error:', error);
         throw error;
@@ -437,34 +441,30 @@ app.get('/api/userInfo', checkSession, async (req, res) => {
 });
 
 app.get('/api/getTeamMembers', checkSession, async (req, res) => {
-    const sql = 'SELECT tm.Username from TeamMembers tm WHERE tm.Team = ?';
-    const values = [req.session.teamId]
 
     if (typeof req.session.teamId == 'undefined' || req.session.teamId == null){
-        
         var usernames = []
         res.json(usernames);
     }
-    else {
-        try {
-            var usernames = []
-            const results = await queryDatabase(sql, values)
-            for (item in results) {
-                usernames.push(results[item].Username)
-            };
-            res.json(usernames);
-        } catch (error) {
-            console.error('Database query error:', error);
-            throw error;
-        }
+
+    try {
+        const results = await pool.request()
+            .input('teamId', sql.Int, req.session.teamId)
+            .query(`SELECT tm.Username from TeamMembers tm WHERE tm.Team = @teamId`);
+        const usernames = results.recordset.map(row => row.Username);
+        res.json(usernames);
+    } catch (error) {
+        console.error('Database query error:', error);
+        throw error;
     }
 });
 
 app.get('/api/getActivities', checkSession, async (req, res) => {
-    const sql = 'SELECT DISTINCT Activity from HighscoreData';
+
     try {
-        const results = await queryDatabase(sql)
-        res.json(results);
+        var results = await pool.request()
+            .query(`SELECT DISTINCT Activity from HighscoreData`);
+        res.json(results.recordset);
     } catch (error) {
         console.error('Database query error:', error);
         throw error;
@@ -499,8 +499,8 @@ app.get('/api/updatePlayerStats', checkSession, async (req, res) => {
     }
 
     try {
-        await queryDatabase('DELETE FROM HighscoreData WHERE Username = ? AND RecordType = "Current"', [username]);
-        await poolPromise.query(sql, [values])
+ //       lol we cry, we have to do this soon
+
     } catch (error) {
         console.error('Database query error:', error);
         return res.status(500).json({ error: 'Database query failed' });
@@ -510,10 +510,13 @@ app.get('/api/updatePlayerStats', checkSession, async (req, res) => {
 });
 
 app.get('/api/getTeamActivityStats', checkSession, async (req, res) => {
-    const sql = 'SELECT hd.Username, hd.Score, hd.RecordType from HighscoreData hd inner join TeamMembers tm on hd.Username = tm.Username where tm.Team = ? and hd.Activity = ?';
+
     try {
-        const results = await queryDatabase(sql, [req.session.teamId, req.query.activity]);
-        res.json(results);
+        var result = await pool.request()
+            .input('teamId', sql.Int, req.session.teamId)
+            .input('activity', sql.VarChar, req.query.activity)
+            .query(`SELECT hd.Username, hd.Score, hd.RecordType from HighscoreData hd inner join TeamMembers tm on hd.Username = tm.Username where tm.Team = @teamId and hd.Activity = @activity`);
+        res.json(result.recordset);
     } catch (error) {
         console.error('Database query error:', error);
         throw error;
@@ -521,23 +524,27 @@ app.get('/api/getTeamActivityStats', checkSession, async (req, res) => {
 });
 
 app.get('/api/setCurrentValues', checkSession, async (req, res) => {
-    const sql = `INSERT INTO HighscoreData (Username, Activity, Score, RecordType)
-    SELECT hd.Username, hd.Activity, hd.Score, "Pinned" as RecordType
-    FROM HighscoreData hd
-    INNER JOIN TeamMembers tm ON hd.Username = tm.Username
-    WHERE tm.Team = ? AND hd.Activity = ?
-    AND NOT EXISTS (
-        SELECT 1
-        FROM HighscoreData target
-        WHERE target.Username = hd.Username
-          AND target.Activity = hd.Activity
-          AND target.RecordType = "Pinned"
-    );`;
+
     if (typeof req.session.teamId == 'undefined' || req.session.teamId == null){
         return res.json({ message: 'Error' });
     }
+
     try {
-        await queryDatabase(sql, [req.session.teamId, req.query.activity]);
+        await pool.request()
+            .input('teamId', sql.Int, req.session.teamId)
+            .input('activity', sql.VarChar, req.query.activity)
+            .query(`INSERT INTO HighscoreData (Username, Activity, Score, RecordType)
+            SELECT hd.Username, hd.Activity, hd.Score, "Pinned" as RecordType
+            FROM HighscoreData hd
+            INNER JOIN TeamMembers tm ON hd.Username = tm.Username
+            WHERE tm.Team = @teamId AND hd.Activity = @activity
+            AND NOT EXISTS (
+                SELECT 1
+                FROM HighscoreData target
+                WHERE target.Username = hd.Username
+                AND target.Activity = hd.Activity
+                AND target.RecordType = "Pinned"
+            );`);
         res.json({ message: 'Current values set successfully' });
     } catch (error) {
         console.error('Database query error:', error);
