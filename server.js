@@ -146,7 +146,7 @@ const config = {
 const pool = new sql.ConnectionPool(config);
 const poolConnect = pool.connect();
 
-await poolConnect.then(() => {
+poolConnect.then(() => {
     console.log('Connected to MSSQL Database!');
 }).catch(err => {
     console.error('Database connection failed:', err);
