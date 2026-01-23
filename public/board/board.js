@@ -121,7 +121,7 @@ async function loadBingoBoard(teamId) {
 
     const templateNumber = await fetch(`/api/getTemplateNumber`)
         .then(response => response.json())
-        .then(data => data[0].Template);
+        .then(data => data[0].TemplateId);
 
     const templateData = await fetch(`/api/getTemplate?templateId=${templateNumber}`)
         .then(response => response.json());

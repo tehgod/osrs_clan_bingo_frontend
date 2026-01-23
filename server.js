@@ -168,11 +168,12 @@ app.post('/auth', async function(req, res) {
 	// Ensure the input fields exists and are not empty
 	if (username && password) {
 		// Execute SQL query that'll select the account from the database based on the specified username and password
+        let results;
         try {
-            const results = await pool.request()
+            results = await pool.request()
                 .input('username', sql.VarChar, username)
                 .input('password', sql.VarChar, password)
-                .query(`SELECT * FROM LoginAccounts WHERE username = @username AND password = @password`);
+                .query(`SELECT * FROM [Bingo].[Login] WHERE username = @username AND password = @password`);
         } catch (error) {
             return res.status(500).json({ message: 'Database error', error: error.message });
         }
@@ -245,7 +246,7 @@ app.post('/api/update-tile', checkSession, async (req, res) => {
         await pool.request()
         .input('teamId', sql.Int, teamId)
         .input('tile', sql.VarChar, tile)
-        .query(`DELETE FROM CurrentLayoutUrls WHERE Team = @teamId AND Cell = @tile`);
+        .query(`DELETE FROM [Bingo].[LayoutUrl] WHERE Team = @teamId AND Cell = @tile`);
     } catch (error) {
         console.error('Database query error:', error);
         throw error;
@@ -259,7 +260,14 @@ app.post('/api/update-tile', checkSession, async (req, res) => {
             .input('teamId', sql.Int, teamId)
             .input('tile', sql.VarChar, tile)
             .input('newUrl', sql.VarChar, newUrl)
-            .query(`INSERT INTO CurrentLayoutUrls(Team, Cell, Url) VALUES (@teamId, @tile, @newUrl)`);
+            .query(`INSERT INTO [Bingo].[LayoutUrl]
+                    (
+                        [Team],
+                        [Cell],
+                        [Url]
+                    )
+                    VALUES
+                    (@teamId, @tile, @newUrl);`);
         } catch (error) {
             console.error('Database query error:', error);
             throw error;
@@ -272,9 +280,11 @@ app.post('/api/update-tile', checkSession, async (req, res) => {
             await pool.request()
             .input('teamId', sql.Int, teamId)
             .input('tile', sql.VarChar, tile)
-            .query(`SELECT Status FROM CurrentLayouts WHERE Team = @teamId AND Cell = @tile`);
-        }
-        catch (error) {
+            .query(`UPDATE [Bingo].[Layout]
+                    SET [Status] = 1
+                    WHERE [Cell] = @tile
+                        AND [Team] = @teamId;`);
+        } catch (error) {
             console.error('Database query error:', error);
             throw error;
         }
@@ -287,7 +297,11 @@ app.post('/api/update-tile', checkSession, async (req, res) => {
                 await pool.request()
                 .input('teamId', sql.Int, teamId)
                 .input('inProgressTile', sql.VarChar, inProgressTile)
-                .query(`UPDATE CurrentLayouts SET Status = 2 WHERE Status = 0 AND Cell = @inProgressTile AND Team = @teamId`);
+                .query(`UPDATE [Bingo].[Layout]
+                        SET [Status] = 2
+                        WHERE [Status] = 0
+                            AND [Cell] = @inProgressTile
+                            AND [Team] = @teamId;`);
             }
             catch (error) {
                 console.error('Database query error:', error);
@@ -295,29 +309,44 @@ app.post('/api/update-tile', checkSession, async (req, res) => {
             }
         }
 
+        let inProgressDiscordTiles;
         try {
-            var inProgressDiscordTiles = await pool.request()
+            inProgressDiscordTiles = await pool.request()
             .input('teamId', sql.Int, teamId)
-            .query(`SELECT cl.Cell, cl.Status, t.Task  from CurrentLayouts cl inner join Tasks t on cl.TaskId =t.Id where Status = 2 AND Team = @teamId`);
+            .query(`SELECT [l].[Cell],
+                        [l].[Status],
+                        [t].[Task]
+                    FROM [Bingo].[Layout] AS [l]
+                        INNER JOIN [Bingo].[Task] AS [t]
+                            ON [l].[TaskId] = [t].[Id]
+                    WHERE [l].[Status] = 2
+                        AND [l].[Team] = @teamId;`);
         }
         catch (error) {
             console.error('Database query error:', error);
             throw error;
         }
 
+        let inProgressTilesRules;
         try {
-            var inProgressTilesRules = await pool.request()
+            inProgressTilesRules = await pool.request()
             .input('teamId', sql.Int, teamId)
-            .query(`SELECT cl.Cell, tr.Rule FROM CurrentLayouts cl INNER JOIN TasksRules tr ON cl.TaskId = tr.TasksId WHERE Team = @teamId AND Status!=0`);
+            .query(`SELECT [l].[Cell],
+                        [tr].[Rule]
+                    FROM [Bingo].[Layout] AS [l]
+                        INNER JOIN [Bingo].[TaskRule] AS [tr]
+                            ON [l].[TaskId] = [tr].[TaskId]
+                    WHERE [l].[Team] = @teamId
+                        AND [l].[Status] != 0;`);
         }
         catch (error) {
             console.error('Database query error:', error);
             throw error;
         }
 
-        const fields = inProgressDiscordTiles.map(tile => {
+        const fields = inProgressDiscordTiles.recordset.map(tile => {
             // Find rules for the current tile's Cell
-            const rulesForTile = inProgressTilesRules
+            const rulesForTile = inProgressTilesRules.recordset
                 .filter(rule => rule.Cell === tile.Cell)
                 .map(rule => `- ${rule.Rule}`) // Prefix each rule with a dash for readability
         
@@ -356,10 +385,11 @@ app.post('/api/update-tile', checkSession, async (req, res) => {
 
 app.get('/api/getTemplateNumber', checkSession, async (req, res) => {
 
+    let results;
     try {
-        const results = await pool.request()
+        results = await pool.request()
             .input('teamId', sql.Int, req.session.teamId)
-            .query(`SELECT DISTINCT Template from CurrentLayouts cl where Team = @teamId`);
+            .query(`SELECT DISTINCT TemplateId from [Bingo].[Layout] cl where Team = @teamId`);
         res.json(results.recordset);
     } catch (error) {
         console.error('Database query error:', error);
@@ -367,13 +397,13 @@ app.get('/api/getTemplateNumber', checkSession, async (req, res) => {
     }
 });
 
-
 app.get('/api/getTemplate', checkSession, async (req, res) => {
 
+    let results;
     try {
-        const results = await pool.request()
+        results = await pool.request()
             .input('templateId', sql.Int, req.query.templateId)
-            .query(`SELECT bt.Cell, LOWER(ld.Name) AS Difficulty from BoardTemplate bt INNER JOIN LookupDifficulty ld on bt.Difficulty = ld.Id WHERE Template= @templateId`);
+            .query(`SELECT bt.Cell, LOWER(ld.Name) AS Difficulty from [Bingo].[Template] bt INNER JOIN [Lookup].[BingoDifficulty] ld on bt.Difficulty = ld.Id WHERE Template= @templateId`);
         res.json(results.recordset);
     }
     catch (error) {
@@ -384,10 +414,17 @@ app.get('/api/getTemplate', checkSession, async (req, res) => {
 
 app.get('/api/getRules', checkSession, async (req, res) =>{
 
+    let results;
     try {
-        const results = await pool.request()
+        results = await pool.request()
         .input('teamId', sql.Int, req.session.teamId)
-        .query(`SELECT cl.Cell, tr.Rule FROM CurrentLayouts cl INNER JOIN TasksRules tr ON cl.TaskId = tr.TasksId WHERE Team = @teamId AND Status!=0`);
+        .query(`SELECT [l].[Cell],
+                    [tr].[Rule]
+                FROM [Bingo].[Layout] AS [l]
+                    INNER JOIN [Bingo].[TaskRule] AS [tr]
+                        ON [l].[TaskId] = [tr].[TaskId]
+                WHERE [l].[Team] = @teamId
+                    AND [l].[Status] != 0;`);
         res.json(results.recordset);
     }
     catch (error) {
@@ -401,7 +438,17 @@ app.get('/api/getCompleted', checkSession, async (req, res) => {
     try {
         const results = await pool.request()
             .input('teamId', sql.Int, req.session.teamId)
-            .query(`SELECT cl.Cell, cl.Status, t.Task  from CurrentLayouts cl inner join Tasks t on cl.TaskId =t.Id where (Status >0 or t.Difficulty =0) and Team = @teamId`);
+            .query(`SELECT [l].[Cell],
+                        [l].[Status],
+                        [t].[Task]
+                    FROM [Bingo].[Layout] AS [l]
+                        INNER JOIN [Bingo].[Task] AS [t]
+                            ON [l].[TaskId] = [t].[Id]
+                    WHERE (
+                            [l].[Status] > 0
+                            OR [t].[Difficulty] = 0
+                        )
+                        AND [l].[Team] = @teamId;`);
         res.json(results.recordset);
     }
     catch (error) {
@@ -413,9 +460,10 @@ app.get('/api/getCompleted', checkSession, async (req, res) => {
 app.get('/api/getUrls', checkSession, async (req, res) => {
 
     try {
-        const results = await pool.request()
+        let results;
+        results = await pool.request()
             .input('teamId', sql.Int, req.session.teamId)
-            .query(`SELECT clu.Cell, clu.Url from CurrentLayoutUrls clu WHERE Team = @teamId`);
+            .query(`SELECT clu.Cell, clu.Url from [Bingo].[LayoutUrl] clu WHERE Team = @teamId`);
         res.json(results.recordset);
     }
     catch (error) {
@@ -429,7 +477,7 @@ app.get('/api/userInfo', checkSession, async (req, res) => {
     try {
         const results = await pool.request()
             .input('username', sql.VarChar, req.session.username)
-            .query(`SELECT la.Team, la.Approver, la.DiscordWebhook from LoginAccounts la WHERE username = @username`);
+            .query(`SELECT la.Team, la.Approver, la.DiscordWebhook from [Bingo].[Login] la WHERE username = @username`);
         req.session.approver = results.recordset[0].Approver;
         req.session.discordUrl = results.recordset[0].DiscordWebhook;
         req.session.teamId = results.recordset[0].Team;
