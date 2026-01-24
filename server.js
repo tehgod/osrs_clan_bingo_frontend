@@ -30,10 +30,14 @@ app.use(helmet({
 
 app.use(cors({
   origin: function (origin, callback) {
+    // Log origin for debugging
+    console.log('CORS request from origin:', origin);
+    
     // Allow requests with no origin (same-origin requests)
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) === -1) {
+      console.log('REJECTED - Allowed origins:', allowedOrigins);
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
