@@ -15,8 +15,8 @@ dotenv.config();
 const app = express();
 const port = 3000;
 
-// Trust proxy for Cloudflare Tunnel
-app.set('trust proxy', true);
+// Trust proxy for Cloudflare Tunnel - trust only loopback since tunnel is local
+app.set('trust proxy', 'loopback');
 
 const allowedOrigins = [
   'http://localhost:3000',
@@ -33,13 +33,8 @@ app.use(cors({
     // Log origin for debugging
     console.log('CORS request from origin:', origin);
     
-    // Allow requests with no origin or null origin (form submissions via Cloudflare Tunnel)
-    // This is acceptable because we have:
-    // - Session authentication
-    // - Rate limiting
-    // - SameSite cookie protection
-    // - checkSession middleware on protected routes
-    if (!origin || origin === 'null') return callback(null, true);
+    // Allow requests with no origin (same-origin requests)
+    if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) === -1) {
       console.log('REJECTED - Allowed origins:', allowedOrigins);
