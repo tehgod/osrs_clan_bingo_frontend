@@ -276,7 +276,9 @@ router.get('/getTeamMembers', checkSession, async (req, res) => {
     try {
         const results = await pool.request()
             .input('teamId', sql.Int, req.session.teamId)
-            .query(`SELECT tm.Username from TeamMembers tm WHERE tm.Team = @teamId`);
+            .query(`SELECT [m].[Username]
+                    FROM [Bingo].[Member] AS [m]
+                    WHERE [m].[Team] = @teamId;`);
         const usernames = results.recordset.map(row => row.Username);
         res.json(usernames);
     } catch (error) {
@@ -289,8 +291,12 @@ router.get('/getActivities', checkSession, async (req, res) => {
 
     try {
         var results = await pool.request()
-            .query(`SELECT DISTINCT Activity from HighscoreData`);
-        res.json(results.recordset);
+            .query(`SELECT DISTINCT
+                        [d].[ActivityName]
+                    FROM [Highscore].[Data] AS [d]
+                    ORDER BY [d].[ActivityName];`);
+        const activities = results.recordset.map(row => ({ Activity: row.ActivityName }));
+        res.json(activities);
     } catch (error) {
         console.error('Database query error:', error);
         throw error;
@@ -310,10 +316,14 @@ router.get('/updatePlayerStats', checkSession, async (req, res) => {
     }
     
     try {
-        const table = new sql.Table('HighscoreData');
-        table.columns.add('Username', sql.VarChar(12));
-        table.columns.add('Timestamp', sql.DateTime2);
-        table.columns.add('ActivityName', sql.VarChar(255));
+        const table = new sql.Table('[Highscore].[Data]');
+        
+        // Explicitly create table object without the identity column
+        table.create = true;
+        
+        table.columns.add('Username', sql.VarChar(12), { nullable: false });
+        table.columns.add('Timestamp', sql.DateTime2, { nullable: false });
+        table.columns.add('ActivityName', sql.VarChar(256), { nullable: false });
         table.columns.add('Rank', sql.Int, { nullable: true });
         table.columns.add('Score', sql.Int, { nullable: true });
         table.columns.add('Level', sql.Int, { nullable: true });
@@ -379,13 +389,32 @@ router.get('/updatePlayerStats', checkSession, async (req, res) => {
     res.json({ message: 'Player stats updated successfully'});
 });
 
+router.get('/getPinnedStatus', checkSession, async (req, res) => {
+
+    if (typeof req.session.teamId == 'undefined' || req.session.teamId == null){
+        return res.json(false);
+    }
+    try {
+        var results = await pool.request()
+            .input('activityName', sql.VarChar, req.query.activity)
+            .input('teamId', sql.Int, req.session.teamId)
+            .execute('[Bingo].[GetPinnedStatus]');
+        
+        const pinnedStatus = results.recordset[0][''] === 1;
+        res.json(pinnedStatus);
+    } catch (error) {
+        console.error('Database query error:', error);
+        throw error;
+    }
+});
+
 router.get('/getTeamActivityStats', checkSession, async (req, res) => {
 
     try {
         var result = await pool.request()
             .input('teamId', sql.Int, req.session.teamId)
-            .input('activity', sql.VarChar, req.query.activity)
-            .query(`SELECT hd.Username, hd.Score, hd.RecordType from HighscoreData hd inner join TeamMembers tm on hd.Username = tm.Username where tm.Team = @teamId and hd.Activity = @activity`);
+            .input('activityName', sql.VarChar, req.query.activity)
+            .execute('[Bingo].[GetTeamStats]');
         res.json(result.recordset);
     } catch (error) {
         console.error('Database query error:', error);
@@ -402,19 +431,8 @@ router.get('/setCurrentValues', checkSession, async (req, res) => {
     try {
         await pool.request()
             .input('teamId', sql.Int, req.session.teamId)
-            .input('activity', sql.VarChar, req.query.activity)
-            .query(`INSERT INTO HighscoreData (Username, Activity, Score, RecordType)
-            SELECT hd.Username, hd.Activity, hd.Score, "Pinned" as RecordType
-            FROM HighscoreData hd
-            INNER JOIN TeamMembers tm ON hd.Username = tm.Username
-            WHERE tm.Team = @teamId AND hd.Activity = @activity
-            AND NOT EXISTS (
-                SELECT 1
-                FROM HighscoreData target
-                WHERE target.Username = hd.Username
-                AND target.Activity = hd.Activity
-                AND target.RecordType = "Pinned"
-            );`);
+            .input('activityName', sql.VarChar, req.query.activity)
+            .execute(`[Bingo].[SetPinnedValues]`);
         res.json({ message: 'Current values set successfully' });
     } catch (error) {
         console.error('Database query error:', error);

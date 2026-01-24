@@ -1,6 +1,10 @@
 async function populateDropdown() {
     const response = await fetch('/api/getActivities');
     const data = await response.json();
+    
+    // Sort activities alphabetically
+    data.sort((a, b) => a["Activity"].localeCompare(b["Activity"]));
+    
     for (const activity of data) {
         const option = document.createElement('option');
         option.value = activity["Activity"];
@@ -66,23 +70,7 @@ async function getTeamUsernames() {
 async function getTeamStats(activity) {
     const response = await fetch('/api/getTeamActivityStats?activity=' + activity);
     const data = await response.json();
-
-    var userStats = {};
-    for (var record of data) {
-        if (!userStats[record["Username"]]) {
-            userStats[record["Username"]] = {
-                "Current": null,
-                "Pinned": null
-            };
-        }
-        if (record["RecordType"] == "Current") {
-            userStats[record["Username"]]["Current"] = record["Score"];
-        }
-        if (record["RecordType"] == "Pinned") {
-            userStats[record["Username"]]["Pinned"] = record["Score"];
-        }
-    }
-    return userStats;
+    return data;
 }
 
 async function populateHighscoreData() {
@@ -92,13 +80,16 @@ async function populateHighscoreData() {
 
     var teamStats = await getTeamStats(selectedActivity);
 
-    xpHeader = "Starting Score/XP (Not Set)";
-    for (stat in teamStats) {
-        if (teamStats[stat]["Pinned"] != null) {
-            xpHeader = "Starting Score/XP";
-            break;
-        }
+    const pinnedStatus = await fetch (`/api/getPinnedStatus?activity=${selectedActivity}`)
+
+        .then(response => response.json());
+
+    xpHeader = "Starting Score/XP";
+
+    if (!pinnedStatus) {
+        xpHeader += " (NOT SET)";
     }
+
 
     // Create the table header with Bootstrap styling
     const tableHeader = document.getElementById('table-header');
@@ -110,16 +101,10 @@ async function populateHighscoreData() {
     `;
     var totalDifference = 0;
 
-    for (var username in teamStats) {
-        let currentXp = teamStats[username]["Current"];
-        let pinnedXp = teamStats[username]["Pinned"];
-
-        if (currentXp == null) {
-            currentXp = 0;
-        }
-        if (pinnedXp == null) {
-            pinnedXp = currentXp;
-        }
+    for (var user in teamStats) {
+        let currentXp = teamStats[user]["Current"];
+        let pinnedXp = teamStats[user]["Pinned"];
+        let username = teamStats[user]["Username"];
 
         // Create a table row
         const row = document.createElement('tr');

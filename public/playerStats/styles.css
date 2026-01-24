@@ -1,3 +1,4 @@
-.form-select {
-    overflow-y: auto; /* Enable vertical scrolling when options overflow */
+#skill-select {
+    width: 25%;
+    min-width: 200px; /* Ensure it's usable on small screens */
 }
