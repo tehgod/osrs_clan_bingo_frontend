@@ -15,6 +15,9 @@ dotenv.config();
 const app = express();
 const port = 3000;
 
+// Trust proxy for Cloudflare Tunnel
+app.set('trust proxy', true);
+
 const allowedOrigins = [
   'http://localhost:3000',
   'https://bingo.shelbyhomelab.com'
