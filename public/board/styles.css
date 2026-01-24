@@ -94,8 +94,40 @@ i {
     background-color: #fe2b2b; /* Light gray */
 }
 
+.grandmaster {
+    background-color: #ffad0a; /* orange */
+}
+
 .completed {
     background-color: #0de63f; /* Neon Green */
+}
+
+.completed {
+    background-color: #0de63f; /* Neon Green */
+}
+
+.tier1key {
+    background-color: #eefe46; /* Light blue */
+}
+
+.tier2key {
+    background-color: #eefe46; /* Light yellow */
+}
+
+.tier3key {
+    background-color: #eefe46; /* Light red */
+}
+
+.tier1door {
+    background-color: #c1921c; /* Light green */
+}
+
+.tier2door {
+    background-color: #c1921c; /* Pink */
+}
+
+.tier3door {
+    background-color: #c1921c; /* Light gray */
 }
 
 /* Mobile styles for screens with width 800px or less */

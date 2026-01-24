@@ -1,10 +1,6 @@
 async function populateDropdown() {
     const response = await fetch('/api/getActivities');
     const data = await response.json();
-    
-    // Sort activities alphabetically
-    data.sort((a, b) => a["Activity"].localeCompare(b["Activity"]));
-    
     for (const activity of data) {
         const option = document.createElement('option');
         option.value = activity["Activity"];
@@ -29,7 +25,13 @@ async function setCurrentValues() {
 
 async function bindOnClicks(approverStatus) {
     document.getElementById('update-button').onclick = async () => {
-        document.getElementById('update-button').classList.add('disabled');
+        const button = document.getElementById('update-button');
+        button.classList.add('disabled');
+        
+        // Add loading spinner
+        const originalText = button.innerHTML;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Updating...';
+        
         var teamUsernames = await getTeamUsernames();
         if (teamUsernames.length == 0) {
             alert("Please login to continue");
@@ -41,7 +43,10 @@ async function bindOnClicks(approverStatus) {
         }
         await populateDropdown();
         await populateHighscoreData();
-        document.getElementById('update-button').classList.remove('disabled');
+        
+        // Restore button
+        button.innerHTML = originalText;
+        button.classList.remove('disabled');
         document.getElementById('set-button').classList.add('disabled');
         if (approverStatus==1){
             document.getElementById('set-button').classList.remove('disabled');
@@ -84,10 +89,12 @@ async function populateHighscoreData() {
 
         .then(response => response.json());
 
-    xpHeader = "Starting Score/XP";
+    let xpHeader = "Starting Score/XP";
+    let xpHeaderStyle = "";
 
     if (!pinnedStatus) {
         xpHeader += " (NOT SET)";
+        xpHeaderStyle = ' style="color: red;"';
     }
 
 
@@ -96,7 +103,7 @@ async function populateHighscoreData() {
     tableHeader.innerHTML = `
         <th>Username</th>
         <th>Current Score/XP</th>
-        <th>${xpHeader}</th>
+        <th${xpHeaderStyle}>${xpHeader}</th>
         <th>Difference</th>
     `;
     var totalDifference = 0;
@@ -137,17 +144,22 @@ async function loadUserInfo() {
     return userInfo[0]
 }
 
-function applyUserChanges(approverStatus) {
-    if (approverStatus!=1){
+function applyUserChanges(userInfo) {
+    if (userInfo.Approver!=1){
         document.getElementById("set-button").remove();
     }   else {
         document.getElementById("set-button").classList.remove('disabled');
     }
+
+    document.title=`Team ${userInfo.Team}`;
+
+    document.getElementById("teamHeader").textContent=`Team ${userInfo.Team}`;
 }
+
 
 (async () => {
     userInfo = await loadUserInfo()
-    applyUserChanges(userInfo.Approver);
+    applyUserChanges(userInfo);
     await populateDropdown();
     populateHighscoreData();
     bindOnClicks(userInfo.Approver);

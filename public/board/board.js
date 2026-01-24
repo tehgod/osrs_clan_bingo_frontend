@@ -71,6 +71,7 @@ function loadScoreboard() {
         { text: "Hard", class: "hard" }, 
         { text: "Elite", class: "elite" }, 
         { text: "Master", class: "master" }, 
+        { text: "Grandmaster", class: "grandmaster" },
         { text: "Completed", class: "completed" }
     ], true);
 
@@ -83,6 +84,7 @@ function loadScoreboard() {
         { text: "4", class: "hard" },
         { text: "5", class: "elite" },
         { text: "6", class: "master" },
+        { text: "7", class: "grandmaster" },
         { id: "teamPoints", class: "completed" }
     ]);
 
@@ -95,6 +97,7 @@ function loadScoreboard() {
         { id: "hardPoints", class: "hard" },
         { id: "elitePoints", class: "elite" },
         { id: "masterPoints", class: "master" },
+        { id: "grandmasterPoints", class: "grandmaster" },
         { id: "totalPoints", class: "completed" }
     ]);
 
@@ -272,7 +275,8 @@ function calculatePoints() {
         { level: "medium", multiplier: 3 },
         { level: "hard", multiplier: 4 },
         { level: "elite", multiplier: 5 },
-        { level: "master", multiplier: 6 }
+        { level: "master", multiplier: 6 },
+        { level: "grandmaster", multiplier: 7 }
     ];
 
     let totalPoints = 0;

@@ -224,7 +224,7 @@ router.get('/getCompleted', checkSession, async (req, res) => {
                             ON [l].[TaskId] = [t].[Id]
                     WHERE (
                             [l].[Status] > 0
-                            OR [t].[Difficulty] = 0
+                            OR [t].[Difficulty] IN (0, 8, 9, 10)
                         )
                         AND [l].[Team] = @teamId;`);
         res.json(results.recordset);
