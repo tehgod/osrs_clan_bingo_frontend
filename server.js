@@ -49,6 +49,18 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static((path.join(__dirname, 'public'))));
+
+// Reject requests with null origin (except for same-origin navigation)
+app.use((req, res, next) => {
+	const origin = req.get('origin');
+	// If origin is explicitly "null" (string), reject and redirect
+	if (origin === 'null') {
+		console.log('Blocked null origin request to:', req.path);
+		return res.redirect('/');
+	}
+	next();
+});
+
 app.use(session({
 	secret: process.env.SESSION_STRING,
 	resave: false,
