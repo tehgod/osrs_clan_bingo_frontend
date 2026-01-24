@@ -12,7 +12,7 @@
 	<body>
 		<div class="login">
 			<h1>Login</h1>
-			<form action="/auth" method="post">
+			<form id="loginForm">
 				<label for="username">
 					<!-- font awesome icon -->
 					<i class="fas fa-user"></i>
@@ -25,4 +25,37 @@
 				<input type="submit" value="Login">
 			</form>
 		</div>
+		<script>
+			document.getElementById('loginForm').addEventListener('submit', async (e) => {
+				e.preventDefault();
+				const username = document.getElementById('username').value;
+				const password = document.getElementById('password').value;
+				
+				try {
+					const response = await fetch('/auth', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({ username, password }),
+						credentials: 'same-origin'
+					});
+					
+					if (response.redirected) {
+						window.location.href = response.url;
+					} else if (response.ok) {
+						const data = await response.json();
+						if (data.success) {
+							window.location.href = '/board';
+						} else {
+							alert(data.message || 'Username and password are incorrect!');
+						}
+					} else {
+						alert('Username and password are incorrect!');
+					}
+				} catch (error) {
+					alert('An error occurred. Please try again.');
+				}
+			});
+		</script>
 	</body>
