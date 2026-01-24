@@ -36,7 +36,7 @@
     <div class="container-fluid">
         <div class="row" style="padding-top: 25px;">
             <div class="col-4">
-            <form action="/api/update-tile" method="post">
+            <form id="updateTileForm">
                 <div class="mb-3 row"> <!--Task text-->
                     <div class="col-2">
                         Task:
@@ -87,6 +87,40 @@
                 <input type="hidden" id="teamId" name="teamId" value=''>
                 
             </form>
+            <script>
+                document.getElementById('updateTileForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const formData = {
+                        selectedTile: document.getElementById('selectedTile').value,
+                        selectedTileCompleted: document.getElementById('selectedTileCompleted').checked ? 'on' : 'off',
+                        selectedTileUrlsValues: document.getElementById('selectedTileUrlsValues').value,
+                        teamId: document.getElementById('teamId').value
+                    };
+                    
+                    try {
+                        const response = await fetch('/api/update-tile', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(formData),
+                            credentials: 'same-origin'
+                        });
+                        
+                        if (response.redirected) {
+                            window.location.href = response.url;
+                        } else if (response.ok) {
+                            window.location.reload();
+                        } else {
+                            alert('Failed to update tile. Please try again.');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('An error occurred. Please try again.');
+                    }
+                });
+            </script>
             </div>
             <div class="col-5">
                 <div>   
