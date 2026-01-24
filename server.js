@@ -1,10 +1,12 @@
 const { checkSession } = require('./middleware/auth');
 const { pool, sql } = require('./config/database');
+const rateLimit = require('express-rate-limit');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const apiRoutes = require('./routes/api');
 const express = require('express');
 const dotenv = require('dotenv');
+const helmet = require('helmet');
 const cors = require('cors');
 const path = require('path');
 
@@ -13,15 +15,61 @@ dotenv.config();
 const app = express();
 const port = 3000;
 
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://bingo.shelbyhomelab.com'
+];
+
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable if you have inline scripts, otherwise configure properly
+  crossOriginEmbedderPolicy: false
+}));
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static((path.join(__dirname, 'public'))));
 app.use(session({
 	secret: process.env.SESSION_STRING,
-	resave: true,
-	saveUninitialized: true
+	resave: false,
+	saveUninitialized: false,
+	cookie: {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === 'production',
+		sameSite: 'strict',
+		maxAge: 1000 * 60 * 60 * 24 // 24 hours
+	}
 }));
+
+// Rate limiting for login attempts
+const loginLimiter = rateLimit({
+	windowMs: 240 * 60 * 1000, // 240 minutes
+	max: 5, // Limit each IP to 5 login attempts per windowMs
+	message: 'Too many login attempts, please try again later',
+	standardHeaders: true,
+	legacyHeaders: false,
+});
+
+// General API rate limiting
+const apiLimiter = rateLimit({
+	windowMs: 1 * 60 * 1000, // 1 minute
+	max: 100, // Limit each IP to 100 requests per minute
+	message: 'Too many requests, please try again later',
+	standardHeaders: true,
+	legacyHeaders: false,
+});
 
 function redirectToLogin(res) {
     res.send(`
@@ -42,7 +90,7 @@ app.get('/', function(req, res) {
     }
 });
 
-app.post('/auth', async function(req, res) {
+app.post('/auth', loginLimiter, async function(req, res) {
 	// Capture the input fields
 	let username = req.body.username;
 	let password = req.body.password;
@@ -106,8 +154,8 @@ app.get('/players', checkSession, function(req, res) {
 	}
 });
 
-// Mount API routes
-app.use('/api', apiRoutes);
+// Mount API routes with rate limiting
+app.use('/api', apiLimiter, apiRoutes);
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);

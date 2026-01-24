@@ -8,7 +8,7 @@ const config = {
     password: process.env.MSSQL_PASSWORD,
     database: 'Runescape',
     options: {
-        encrypt: true,
+        encrypt: false,
         trustServerCertificate: true,
         enableArithAbort: true
     },
