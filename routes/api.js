@@ -309,30 +309,74 @@ router.get('/updatePlayerStats', checkSession, async (req, res) => {
         return res.status(500).json({ error: 'Error fetching player stats' });
     }
     
-    var sql = 'INSERT INTO HighscoreData (Username, Activity, Score, RecordType) VALUES ?';
-    let values = [];
-
-    for (const skill in data.skills) {
-        const xp = data.skills[skill].xp === -1 ? null : data.skills[skill].xp;
-        values.push([username, data.skills[skill].name, xp, "Current"]);
-    }
-
-    if (data.activities) {
-        for (const activity in data.activities) {
-            const score = data.activities[activity].score === -1 ? null : data.activities[activity].score;
-            values.push([username, data.activities[activity].name, score, "Current"]);
-        }
-    }
-
     try {
- //       lol we cry, we have to do this soon
+        const table = new sql.Table('HighscoreData');
+        table.columns.add('Username', sql.VarChar(12));
+        table.columns.add('Timestamp', sql.DateTime2);
+        table.columns.add('ActivityName', sql.VarChar(255));
+        table.columns.add('Rank', sql.Int, { nullable: true });
+        table.columns.add('Score', sql.Int, { nullable: true });
+        table.columns.add('Level', sql.Int, { nullable: true });
+        table.columns.add('Xp', sql.Int, { nullable: true });
+        
+        const now = new Date();
+
+        for (const skill in data.skills) {
+            if (data.skills[skill].rank === -1) {
+                table.rows.add(
+                    username,
+                    now,
+                    data.skills[skill].name,
+                    null,
+                    null,
+                    null,
+                    null
+                );
+            } else {
+                table.rows.add(
+                    username,
+                    now,
+                    data.skills[skill].name,
+                    data.skills[skill].rank,
+                    null,
+                    data.skills[skill].level,
+                    data.skills[skill].xp
+                );
+            }
+        }
+
+        for (const activity in data.activities) {
+            if (data.activities[activity].rank === -1) {
+                table.rows.add(
+                    username,
+                    now,
+                    data.activities[activity].name,
+                    null,
+                    null,
+                    null,
+                    null
+                );
+            } else {
+                table.rows.add(
+                    username,
+                    now,
+                    data.activities[activity].name,
+                    data.activities[activity].rank,
+                    data.activities[activity].score,
+                    null,
+                    null
+                );
+            }
+        }
+        
+        await pool.request().bulk(table);
 
     } catch (error) {
         console.error('Database query error:', error);
         return res.status(500).json({ error: 'Database query failed' });
     }
 
-    res.json({ message: 'Player stats updated successfully', data: values });
+    res.json({ message: 'Player stats updated successfully'});
 });
 
 router.get('/getTeamActivityStats', checkSession, async (req, res) => {

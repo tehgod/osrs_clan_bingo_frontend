@@ -12,9 +12,7 @@ async function populateDropdown() {
 }
 
 async function updateUserStats(username) {
-    const response = await fetch(`/api/updatePlayerStats?username=${username}`);
-    const data = await response.json();
-    return data;
+    await fetch(`/api/updatePlayerStats?username=${username}`);
 }
 
 async function setCurrentValues() {
