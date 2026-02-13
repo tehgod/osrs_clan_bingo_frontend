@@ -43,8 +43,10 @@ async function bindOnClicks(approverStatus) {
         }
         const selectedActivity = document.getElementById('skill-select').value;
         await populateDropdown();
-        await populateHighscoreData();
+        
         document.getElementById('skill-select').value = selectedActivity;
+
+        await populateHighscoreData();
         
         // Restore button
         button.innerHTML = originalText;
