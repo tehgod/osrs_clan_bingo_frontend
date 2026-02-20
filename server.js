@@ -76,7 +76,7 @@ app.use(session({
 // Rate limiting for login attempts
 const loginLimiter = rateLimit({
 	windowMs: 240 * 60 * 1000, // 240 minutes
-	max: 5, // Limit each IP to 5 login attempts per windowMs
+	max: 10, // Limit each IP to 5 login attempts per windowMs
 	message: 'Too many login attempts, please try again later',
 	standardHeaders: true,
 	legacyHeaders: false,
