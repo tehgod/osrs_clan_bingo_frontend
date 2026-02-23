@@ -305,14 +305,38 @@ router.get('/getActivities', checkSession, async (req, res) => {
 
 router.get('/updatePlayerStats', checkSession, async (req, res) => {
     const username = req.query.username;
+    const maxRetries = 3;
     let data;
     
-    try {
-        const response = await fetch(`https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${username}`);
-        data = await response.json(); 
-    } catch (error) {
-        console.error(`Error fetching player stats:${req.query.username}`, error);
-        return res.status(500).json({ error: 'Error fetching player stats' });
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            
+            const response = await fetch(
+                `https://secure.runescape.com/m=hiscore_oldschool/index_lite.json?player=${username}`,
+                { signal: controller.signal }
+            );
+            clearTimeout(timeoutId);
+            
+            if (response.status === 502 && attempt < maxRetries - 1) {
+                console.log(`${new Date().toISOString()} | Server error (502) for ${username} (attempt ${attempt + 1}/${maxRetries}).`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
+            }
+            
+            data = await response.json();
+            break;
+            
+        } catch (error) {
+            if (error.name === 'AbortError' && attempt < maxRetries - 1) {
+                console.log(`${new Date().toISOString()} | Timeout for ${username} (attempt ${attempt + 1}/${maxRetries}).`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
+            }
+            console.error(`Error fetching player stats:${username}`, error);
+            return res.status(500).json({ error: 'Error fetching player stats' });
+        }
     }
     
     try {
